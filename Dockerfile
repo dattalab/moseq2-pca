@@ -1,4 +1,4 @@
-FROM continuumio/miniconda:4.5.11
+FROM continuumio/miniconda
 ENV PATH /opt/conda/lib:/opt/conda/include:$PATH
 
 # Get a newer build toolchain, sshfs, other stuff
