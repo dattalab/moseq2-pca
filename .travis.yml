@@ -1,13 +1,16 @@
 #specs for travis ci
 language: python
 os: linux
-python: 3.6
+python:
+  - 3.6
+# - 3.7 enable once supported by travis
 # get the dependencies
 install:
   - pip install .
 # install what we need for testing
 before_install:
-  - pip install pytest pytest-cov codecov
+  - pip install pytest codecov
+  - pip install "pytest-cov>=2.4.0,<2.6"
   - export PYTHONPATH=$PYTHONPATH:$(pwd)
 # script for tests
 script:

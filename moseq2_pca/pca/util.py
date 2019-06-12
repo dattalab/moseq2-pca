@@ -1,6 +1,6 @@
-from moseq2_pca.util import clean_frames, insert_nans, read_yaml, get_changepoints, get_rps, get_rps_dask
+from moseq2_pca.util import (clean_frames, insert_nans,
+                             read_yaml, get_changepoints, get_rps)
 from dask.distributed import as_completed, wait, progress
-from scipy.stats import zscore
 import dask.array.linalg as lng
 import dask.array as da
 import dask
@@ -35,6 +35,8 @@ def train_pca_dask(dask_array, clean_params, use_fft, rank,
         dask_array.rechunk(100, -1, -1)
         rechunked = True
 
+    smallest_chunk = np.min(dask_array.chunks[0])
+
     if mask is not None:
         missing_data = True
         dask_array[mask] = 0
@@ -42,7 +44,7 @@ def train_pca_dask(dask_array, clean_params, use_fft, rank,
 
     if clean_params['gaussfilter_time'] > 0 or np.any(np.array(clean_params['medfilter_time']) > 0):
         dask_array = dask_array.map_overlap(
-            clean_frames, depth=(20, 0, 0), boundary='reflect',
+            clean_frames, depth=(np.minimum(smallest_chunk, 20), 0, 0), boundary='reflect',
             dtype='float32', **clean_params)
     else:
         dask_array = dask_array.map_blocks(clean_frames, dtype='float32', **clean_params)
@@ -114,7 +116,7 @@ def train_pca_dask(dask_array, clean_params, use_fft, rank,
     correction = np.sign(v[np.arange(v.shape[0]), tmp])
     v *= correction[:, None]
 
-    explained_variance = s**2 / (nsamples-1)
+    explained_variance = s ** 2 / (nsamples-1)
     explained_variance_ratio = explained_variance / total_var
 
     output_dict = {
@@ -130,8 +132,7 @@ def train_pca_dask(dask_array, clean_params, use_fft, rank,
 
 # todo: for applying pca, run once to impute missing data, then get scores
 def apply_pca_local(pca_components, h5s, yamls, use_fft, clean_params,
-                    save_file, chunk_size, h5_metadata_path, h5_timestamp_path,
-                    h5_path, h5_mask_path, mask_params, missing_data, fps=30):
+                    save_file, chunk_size, mask_params, missing_data, fps=30):
 
     with h5py.File('{}.h5'.format(save_file), 'w') as f_scores:
         for h5, yml in tqdm.tqdm(zip(h5s, yamls), total=len(h5s),
@@ -142,10 +143,10 @@ def apply_pca_local(pca_components, h5s, yamls, use_fft, clean_params,
 
             with h5py.File(h5, 'r') as f:
 
-                frames = f[h5_path].value.astype('float32')
+                frames = f['/frames'][...].astype('float32')
 
                 if missing_data:
-                    mask = f[h5_mask_path].value
+                    mask = f['/frames_mask'][...]
                     mask = np.logical_and(mask < mask_params['mask_threshold'],
                                           frames > mask_params['mask_height_threshold'])
                     frames[mask] = 0
@@ -158,14 +159,23 @@ def apply_pca_local(pca_components, h5s, yamls, use_fft, clean_params,
 
                 frames = frames.reshape(-1, frames.shape[1] * frames.shape[2])
 
-                if h5_timestamp_path is not None and h5_timestamp_path in f.keys():
-                    timestamps = f[h5_timestamp_path].value / 1000.0
+                if '/timestamps' in f:
+                    # h5 format post v0.1.3
+                    timestamps = f['/timestamps'][...] / 1000.0
+                elif '/metadata/timestamps' in f:
+                    # h5 format pre v0.1.3
+                    timestamps = f['/metadata/timestamps'][...] / 1000.0
                 else:
                     timestamps = np.arange(frames.shape[0]) / fps
 
-                if h5_metadata_path is not None and 'metadata' in f.keys():
+                if '/metadata/acquisition' in f:
+                    # h5 format post v0.1.3
                     metadata_name = 'metadata/{}'.format(uuid)
-                    f.copy(h5_metadata_path, f_scores, name=metadata_name)
+                    f.copy('/metadata/acquisition', f_scores, name=metadata_name)
+                elif '/metadata/extraction' in f:
+                    # h5 format pre v0.1.3
+                    metadata_name = 'metadata/{}'.format(uuid)
+                    f.copy('/metadata/extraction', f_scores, name=metadata_name)
 
             scores = frames.dot(pca_components.T)
 
@@ -173,11 +183,13 @@ def apply_pca_local(pca_components, h5s, yamls, use_fft, clean_params,
             # then move on
             if missing_data:
                 recon = scores.dot(pca_components)
+                recon[recon < mask_params['min_height']] = 0
+                recon[recon > mask_params['max_height']] = 0
                 frames[mask] = recon[mask]
                 scores = frames.dot(pca_components.T)
 
             scores, score_idx, _ = insert_nans(data=scores, timestamps=timestamps,
-                                               fps=int(1 / np.mean(np.diff(timestamps))))
+                                               fps=np.round(1 / np.mean(np.diff(timestamps))).astype('int'))
 
             f_scores.create_dataset('scores/{}'.format(uuid), data=scores,
                                     dtype='float32', compression='gzip')
@@ -186,8 +198,7 @@ def apply_pca_local(pca_components, h5s, yamls, use_fft, clean_params,
 
 
 def apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
-                   save_file, chunk_size, h5_metadata_path, h5_timestamp_path,
-                   h5_path, h5_mask_path, mask_params, missing_data,
+                   save_file, chunk_size, mask_params, missing_data,
                    client, fps=30):
 
     futures = []
@@ -197,11 +208,11 @@ def apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
         data = read_yaml(yml)
         uuid = data['uuid']
 
-        dset = h5py.File(h5, mode='r')[h5_path]
+        dset = h5py.File(h5, mode='r')['/frames']
         frames = da.from_array(dset, chunks=(chunk_size, -1, -1)).astype('float32')
 
         if missing_data:
-            mask_dset = h5py.File(h5, mode='r')[h5_mask_path]
+            mask_dset = h5py.File(h5, mode='r')['/frames_mask']
             mask = da.from_array(mask_dset, chunks=frames.chunks)
             mask = da.logical_and(mask < mask_params['mask_threshold'],
                                   frames > mask_params['mask_height_threshold'])
@@ -224,6 +235,8 @@ def apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
 
         if missing_data:
             recon = scores.dot(pca_components)
+            recon[recon < mask_params['min_height']] = 0
+            recon[recon > mask_params['max_height']] = 0
             frames = da.map_blocks(mask_data, frames, mask, recon, dtype=frames.dtype)
             scores = frames.dot(pca_components.T)
 
@@ -252,17 +265,26 @@ def apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
                 file_idx = keys.index(future.key)
 
                 with h5py.File(h5s_batch[file_idx], mode='r') as f:
-                    if h5_timestamp_path is not None and h5_timestamp_path in f.keys():
-                        timestamps = f[h5_timestamp_path].value / 1000.0
+                    if '/timestamps' in f:
+                        # h5 format post v0.1.3
+                        timestamps = f['/timestamps'][...] / 1000.0
+                    elif '/metadata/timestamps' in f:
+                        # h5 format pre v0.1.3
+                        timestamps = f['/metadata/timestamps'][...] / 1000.0
                     else:
                         timestamps = np.arange(frames.shape[0]) / fps
 
-                    if h5_metadata_path is not None and 'metadata' in f.keys():
+                    if '/metadata/acquisition' in f:
+                        # h5 format post v0.1.3
                         metadata_name = 'metadata/{}'.format(uuids_batch[file_idx])
-                        f.copy(h5_metadata_path, f_scores, name=metadata_name)
+                        f.copy('/metadata/acquisition', f_scores, name=metadata_name)
+                    elif '/metadata/extraction' in f:
+                        # h5 format pre v0.1.3
+                        metadata_name = 'metadata/{}'.format(uuids_batch[file_idx])
+                        f.copy('/metadata/extraction', f_scores, name=metadata_name)
 
                 scores, score_idx, _ = insert_nans(data=result, timestamps=timestamps,
-                                                   fps=int(1 / np.mean(np.diff(timestamps))))
+                                                   fps=np.round(1 / np.mean(np.diff(timestamps))).astype('int'))
 
                 f_scores.create_dataset('scores/{}'.format(uuids_batch[file_idx]), data=scores,
                                         dtype='float32', compression='gzip')
@@ -271,8 +293,8 @@ def apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
 
 
 def get_changepoints_dask(changepoint_params, pca_components, h5s, yamls,
-                          save_file, chunk_size, h5_path, h5_timestamp_path, h5_mask_path,
-                          mask_params, missing_data, client, fps=30, pca_scores=None):
+                          save_file, chunk_size, mask_params, missing_data,
+                          client, fps=30, pca_scores=None):
 
     futures = []
     uuids = []
@@ -284,18 +306,22 @@ def get_changepoints_dask(changepoint_params, pca_components, h5s, yamls,
 
         with h5py.File(h5, 'r') as f:
 
-            dset = h5py.File(h5, mode='r')[h5_path]
+            dset = h5py.File(h5, mode='r')['/frames']
             frames = da.from_array(dset, chunks=(chunk_size, -1, -1)).astype('float32')
 
-            if h5_timestamp_path is not None and h5_timestamp_path in f.keys():
-                timestamps = f[h5_timestamp_path].value / 1000.0
+            if '/timestamps' in f:
+                # h5 format post v0.1.3
+                timestamps = f['/timestamps'][...] / 1000.0
+            elif '/metadata/timestamps' in f:
+                # h5 format pre v0.1.3
+                timestamps = f['/metadata/timestamps'][...] / 1000.0
             else:
                 timestamps = np.arange(frames.shape[0]) / fps
 
         if missing_data and pca_scores is None:
             raise RuntimeError("Need to compute PC scores to impute missing data")
         elif missing_data:
-            mask_dset = h5py.File(h5, mode='r')[h5_mask_path]
+            mask_dset = h5py.File(h5, mode='r')['/frames_mask']
             mask = da.from_array(mask_dset, chunks=frames.chunks)
             mask = da.logical_and(mask < mask_params['mask_threshold'],
                                   frames > mask_params['mask_height_threshold'])
@@ -304,7 +330,7 @@ def get_changepoints_dask(changepoint_params, pca_components, h5s, yamls,
 
             with h5py.File(pca_scores, 'r') as f:
                 scores = f['scores/{}'.format(uuid)]
-                scores_idx = f['scores_idx/{}'.format(uuid)].value
+                scores_idx = f['scores_idx/{}'.format(uuid)][...]
                 scores = scores[~np.isnan(scores_idx), :]
 
             if np.sum(frames.chunks[0]) != scores.shape[0]:
@@ -319,7 +345,7 @@ def get_changepoints_dask(changepoint_params, pca_components, h5s, yamls,
             recon = scores.dot(pca_components)
             frames = da.map_blocks(mask_data, frames, mask, recon, dtype=frames.dtype)
 
-        rps = dask.delayed(lambda x: get_rps(x, rps=nrps, normalize=True), pure=False)(frames)
+        rps = dask.delayed(get_rps, pure=False)(frames, rps=nrps, normalize=True)
 
         # alternative to using delayed here...
         # rps = frames.dot(da.random.normal(0, 1,
@@ -328,7 +354,7 @@ def get_changepoints_dask(changepoint_params, pca_components, h5s, yamls,
         # rps = zscore(zscore(rps).T)
         # rps = client.scatter(rps)
 
-        cps = dask.delayed(lambda x: get_changepoints(x, timestamps=timestamps, **changepoint_params), pure=True)(rps)
+        cps = dask.delayed(get_changepoints, pure=True)(rps, timestamps=timestamps, **changepoint_params)
 
         futures.append(cps)
         uuids.append(uuid)
