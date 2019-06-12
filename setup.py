@@ -20,7 +20,7 @@ setup(
     platforms=['mac', 'unix'],
     packages=find_packages(),
     install_requires=['h5py', 'matplotlib', 'scipy>=0.19',
-                      'tqdm', 'numpy', 'joblib==0.13.1', 'pytest'
+                      'tqdm', 'numpy', 'joblib==0.13.1', 'pytest',
                       'opencv-python', 'click', 'ruamel.yaml>=0.15.0',
                       'dask[complete]', 'chest', 'seaborn', 'dask_jobqueue>=0.3.0',
                       'scikit-image>=0.14', 'bokeh', 'psutil'],
