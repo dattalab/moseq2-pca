@@ -194,7 +194,7 @@ def train_pca(input_dir, cluster_type, output_dir, gaussfilter_space,
         plt.savefig('{}_scree.pdf'.format(save_file))
         plt.close()
 
-    with h5py.File('{}.h5'.format(save_file)) as f:
+    with h5py.File('{}.h5'.format(save_file), 'w') as f:
         for k, v in output_dict.items():
             f.create_dataset(k, data=v, compression='gzip', dtype='float32')
 
