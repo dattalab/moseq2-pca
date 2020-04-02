@@ -49,17 +49,17 @@ def clip_scores(pca_file, clip_samples, from_end):
     with h5py.File(pca_file, 'r') as f:
         store_dir = os.path.dirname(pca_file)
         base_filename = os.path.splitext(os.path.basename(pca_file))[0]
-        new_filename = os.path.join(store_dir, '{}_clip.h5'.format(base_filename))
+        new_filename = os.path.join(store_dir, f'{base_filename}_clip.h5')
 
         with h5py.File(new_filename, 'w') as f2:
             f.copy('/metadata', f2)
             for key in tqdm.tqdm(f['/scores'].keys(), desc='Copying data'):
                 if from_end:
-                    f2['/scores/{}'.format(key)] = f['/scores/{}'.format(key)][:-clip_samples]
-                    f2['/scores_idx/{}'.format(key)] = f['/scores_idx/{}'.format(key)][:-clip_samples]
+                    f2[f'/scores/{key}'] = f[f'/scores/{key}'][:-clip_samples]
+                    f2[f'/scores_idx/{key}'] = f[f'/scores_idx/{key}'][:-clip_samples]
                 else:
-                    f2['/scores/{}'.format(key)] = f['/scores/{}'.format(key)][clip_samples:]
-                    f2['/scores_idx/{}'.format(key)] = f['/scores_idx/{}'.format(key)][clip_samples:]
+                    f2[f'/scores/{key}'] = f[f'/scores/{key}'][clip_samples:]
+                    f2[f'/scores_idx/{key}'] = f[f'/scores_idx/{key}'][clip_samples:]
 
 @cli.command(name='train-pca', cls=command_with_config('config_file'))
 @click.option('--input-dir', '-i', type=click.Path(), default=os.getcwd(), help='Directory to find h5 files')
@@ -107,7 +107,7 @@ def train_pca(input_dir, cluster_type, output_dir, gaussfilter_space,
 
     params = locals()
     h5s, dicts, yamls = recursive_find_h5s(input_dir)
-    timestamp = '{:%Y-%m-%d_%H-%M-%S}'.format(datetime.datetime.now())
+    timestamp = f'{datetime.datetime.now():%Y-%m-%d_%H-%M-%S}'
 
     params['start_time'] = timestamp
     params['inputs'] = h5s
@@ -117,10 +117,10 @@ def train_pca(input_dir, cluster_type, output_dir, gaussfilter_space,
 
     save_file = os.path.join(output_dir, output_file)
 
-    if os.path.exists('{}.h5'.format(save_file)):
-        raise IOError('{}.h5 already exists, delete before recomputing'.format(save_file))
+    if os.path.exists(f'{save_file}.h5'):
+        raise IOError(f'{save_file}.h5 already exists, delete before recomputing')
 
-    config_store = '{}.yaml'.format(save_file)
+    config_store = f'{save_file}.yaml'
     with open(config_store, 'w') as f:
         yaml.safe_dump(params, f)
 
@@ -155,7 +155,7 @@ def train_pca(input_dir, cluster_type, output_dir, gaussfilter_space,
     stacked_array[stacked_array < min_height] = 0
     stacked_array[stacked_array > max_height] = 0
 
-    print('Processing {:d} total frames'.format(stacked_array.shape[0]))
+    print(f'Processing {len(stacked_array):d} total frames')
 
     if missing_data:
         mask_dsets = [h5py.File(h5, mode='r')['/frames_mask'] for h5 in h5s]
@@ -185,16 +185,16 @@ def train_pca(input_dir, cluster_type, output_dir, gaussfilter_space,
 
     if visualize_results:
         plt, _ = display_components(output_dict['components'], headless=True)
-        plt.savefig('{}_components.png'.format(save_file))
-        plt.savefig('{}_components.pdf'.format(save_file))
+        plt.savefig(f'{save_file}_components.png')
+        plt.savefig(f'{save_file}_components.pdf')
         plt.close()
 
         plt = scree_plot(output_dict['explained_variance_ratio'], headless=True)
-        plt.savefig('{}_scree.png'.format(save_file))
-        plt.savefig('{}_scree.pdf'.format(save_file))
+        plt.savefig(f'{save_file}_scree.png')
+        plt.savefig(f'{save_file}_scree.pdf')
         plt.close()
 
-    with h5py.File('{}.h5'.format(save_file)) as f:
+    with h5py.File(f'{save_file}.h5') as f:
         for k, v in output_dict.items():
             f.create_dataset(k, data=v, compression='gzip', dtype='float32')
 
@@ -240,19 +240,19 @@ def apply_pca(input_dir, cluster_type, output_dir, output_file, h5_path, h5_mask
         pca_file = os.path.join(output_dir, 'pca.h5')
 
     if not os.path.exists(pca_file):
-        raise IOError('Could not find PCA components file {}'.format(pca_file))
+        raise IOError(f'Could not find PCA components file {pca_file}')
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     save_file = os.path.join(output_dir, output_file)
 
-    print('Loading PCs from {}'.format(pca_file))
+    print('Loading PCs from', pca_file)
     with h5py.File(pca_file, 'r') as f:
         pca_components = f[pca_path][...]
 
     # get the yaml for pca, check parameters, if we used fft, be sure to turn on here...
-    pca_yaml = '{}.yaml'.format(os.path.splitext(pca_file)[0])
+    pca_yaml = os.path.splitext(pca_file)[0] + '.yaml'
 
     # todo detect missing data and mask parameters, then 0 out, fill in, compute scores...
     if os.path.exists(pca_yaml):
@@ -289,7 +289,7 @@ def apply_pca(input_dir, cluster_type, output_dir, output_file, h5_path, h5_mask
                 missing_data = False
 
     else:
-        IOError('Could not find {}'.format(pca_yaml))
+        IOError(f'Could not find {pca_yaml}')
 
     if use_fft:
         print('Using FFT...')
@@ -373,19 +373,19 @@ def compute_changepoints(input_dir, output_dir, output_file, cluster_type, pca_f
         pca_file_scores = os.path.join(output_dir, 'pca_scores.h5')
 
     if not os.path.exists(pca_file_components):
-        raise IOError('Could not find PCA components file {}'.format(pca_file_components))
+        raise IOError(f'Could not find PCA components file {pca_file_components}')
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     save_file = os.path.join(output_dir, output_file)
 
-    print('Loading PCs from {}'.format(pca_file_components))
+    print(f'Loading PCs from {pca_file_components}')
     with h5py.File(pca_file_components, 'r') as f:
         pca_components = f[pca_path][...]
 
     # get the yaml for pca, check parameters, if we used fft, be sure to turn on here...
-    pca_yaml = '{}.yaml'.format(os.path.splitext(pca_file_components)[0])
+    pca_yaml = os.path.splitext(pca_file_components)[0] + '.yaml'
 
     # todo detect missing data and mask parameters, then 0 out, fill in, compute scores...
     if os.path.exists(pca_yaml):
@@ -442,14 +442,14 @@ def compute_changepoints(input_dir, output_dir, output_file, cluster_type, pca_f
 
     if visualize_results:
         import numpy as np
-        with h5py.File('{}.h5'.format(save_file), 'r') as f:
+        with h5py.File(f'{save_file}.h5', 'r') as f:
             cps = recursively_load_dict_contents_from_group(f, 'cps')
         block_durs = np.concatenate([np.diff(cp, axis=0) for k, cp in cps.items()])
         out = changepoint_dist(block_durs, headless=True)
         if out:
             fig, _ = out
-            fig.savefig('{}_dist.png'.format(save_file))
-            fig.savefig('{}_dist.pdf'.format(save_file))
+            fig.savefig(f'{save_file}_dist.png')
+            fig.savefig(f'{save_file}_dist.pdf')
             fig.close('all')
 
 
