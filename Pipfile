@@ -17,6 +17,7 @@ scipy = "*"
 numpy = "*"
 click = "*"
 psutil = '*'
+awscli = "*"
 joblib = "*"
 cytoolz = "*"
 seaborn = '*'
