@@ -10,23 +10,23 @@ from moseq2_pca.util import recursive_find_h5s, select_strel, initialize_dask, g
 def setup_cp_command(input_dir, config_data, output_dir, output_file, output_directory):
 
     params = locals()
-    h5s, dicts, yamls = recursive_find_h5s(input_dir)
+    h5s, dicts, yamls = recursive_find_h5s('/'.join(input_dir.split('/')[:-2]))
 
-    h5_timestamp_path = get_timestamp_path(h5s[0])
+    #h5_timestamp_path = get_timestamp_path(h5s[0])
 
     if output_directory is None:
-        output_dir = os.path.join(input_dir, output_dir)  # outputting pca folder in inputted base directory.
+        output_dir = os.path.join('/'.join(input_dir.split('/')[:-2]), output_dir)  # outputting pca folder in inputted base directory.
     else:
         output_dir = os.path.join(output_directory, output_dir)
 
     if config_data['pca_file_components'] is None:
-        pca_file_components = os.path.join(output_dir, 'pca.h5')
+        pca_file_components = os.path.join(input_dir, 'pca.h5')
         config_data['pca_file_components'] = pca_file_components
     else:
         pca_file_components = config_data['pca_file_components']
 
     if config_data['pca_file_scores'] is None:
-        pca_file_scores = os.path.join(output_dir, 'pca_scores.h5')
+        pca_file_scores = os.path.join(input_dir, 'pca_scores.h5')
         config_data['pca_file_scores'] = pca_file_scores
     else:
         pca_file_scores = config_data['pca_file_scores']

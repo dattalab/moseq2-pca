@@ -1,17 +1,15 @@
-import unittest
 import pytest
 import os
 import h5py
 import numpy as np
 import cv2
-from copy import deepcopy
 import ruamel.yaml as yaml
 import platform
 import pathlib
 import psutil
 import re
 import scipy.signal
-from chest import Chest
+
 import dask.array as da
 from dask.distributed import Client, LocalCluster
 from dask_jobqueue import SLURMCluster
@@ -203,7 +201,7 @@ def test_insert_nans():
     # original params: timestamps, data, fps
 
     # generate mock timestamps from test h5 file
-    h5file = 'tests/test_files/testh5.h5'
+    h5file = 'test_files/testh5.h5'
     fps = 30
     chunk_size = 5000
     print('to be implemented with simpler test data file')
@@ -260,7 +258,7 @@ def test_insert_nans():
 
 def test_read_yaml():
     # original param: yaml_file
-    yaml_file = 'tests/test_files/test_conf.yaml'
+    yaml_file = 'test_files/test_conf.yaml'
     try:
         with open(yaml_file, 'r') as f:
             dat = f.read()
@@ -280,7 +278,7 @@ def test_read_yaml():
 
 def test_get_timestamp_path():
     # original param: h5file path
-    h5file = 'tests/test_files/testh5.h5'
+    h5file = 'test_files/testh5.h5'
     with h5py.File(h5file, 'r') as f:
         if '/timestamps' in f:
             return '/timestamps'
@@ -293,7 +291,7 @@ def test_get_timestamp_path():
 
 def test_get_metadata_path():
     # original param: h5file path
-    h5file = 'tests/test_files/testh5.h5'
+    h5file = 'test_files/testh5.h5'
     with h5py.File(h5file, 'r') as f:
         if '/metadata/acquisition' in f:
             return '/metadata/acquisition'

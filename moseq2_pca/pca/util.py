@@ -367,6 +367,7 @@ def get_changepoints_dask(changepoint_params, pca_components, h5s, yamls,
     batch_size = 1
 
     with h5py.File('{}.h5'.format(save_file), 'w') as f_cps:
+
         f_cps.create_dataset('metadata/fps', data=fps, dtype='float32')
 
         batch_count = 0
@@ -382,7 +383,6 @@ def get_changepoints_dask(changepoint_params, pca_components, h5s, yamls,
             for future, result in as_completed(futures_batch, with_results=True):
 
                 file_idx = keys.index(future.key)
-
                 if result[0] is not None and result[1] is not None:
                     f_cps.create_dataset('cps_score/{}'.format(uuids_batch[file_idx]), data=result[1],
                                          dtype='float32', compression='gzip')

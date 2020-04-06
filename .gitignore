@@ -111,3 +111,4 @@ venv.bak/
 # it just works
 .DS_Store
 .vscode
+/data/
