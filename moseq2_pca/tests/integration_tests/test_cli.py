@@ -27,7 +27,6 @@ class TestCli(TestCase):
 
     def test_train_pca(self):
         data_dir = 'data/'
-        data_path = os.path.join(data_dir, 'testh5.h5')
 
         train_params_local = ['-i', data_dir,
                         '--cluster-type', 'local',

@@ -23,7 +23,11 @@ def setup_cp_command(input_dir, config_data, output_dir, output_file, output_dir
         pca_file_components = os.path.join(input_dir, 'pca.h5')
         config_data['pca_file_components'] = pca_file_components
     else:
-        pca_file_components = config_data['pca_file_components']
+        if not os.path.exists(config_data['pca_file_components']):
+            pca_file_components = os.path.join(input_dir, 'pca.h5')
+            config_data['pca_file_components'] = pca_file_components
+        else:
+            pca_file_components = config_data['pca_file_components']
 
     if config_data['pca_file_scores'] is None:
         pca_file_scores = os.path.join(input_dir, 'pca_scores.h5')

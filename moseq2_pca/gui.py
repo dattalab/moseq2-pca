@@ -32,6 +32,7 @@ def apply_pca_command(input_dir, index_file, config_file, output_dir, output_fil
         with open(index_file, 'r') as f:
             index_params = yaml.safe_load(f)
         f.close()
+
         index_params['pca_path'] = config_data['pca_file_scores']
 
         with open(index_file, 'w') as f:

@@ -164,7 +164,11 @@ def apply_pca_wrapper(input_dir, config_data, output_dir, output_file, output_di
         pca_file = os.path.join(input_dir, 'pca.h5')
         config_data['pca_file'] = pca_file
     else:
-        pca_file = config_data['pca_file']
+        if not os.path.exists(config_data['pca_file']):
+            pca_file = os.path.join(input_dir, 'pca.h5')
+            config_data['pca_file'] = pca_file
+        else:
+            pca_file = config_data['pca_file']
 
     if not os.path.exists(pca_file):
         raise IOError('Could not find PCA components file {}'.format(config_data['pca_file']))
