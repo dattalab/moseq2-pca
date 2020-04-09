@@ -16,10 +16,10 @@ setup(
     name='moseq2-pca',
     author='Jeff Markowitz',
     description='To boldly go where no mouse has gone before',
-    version='0.4.0',
+    version='0.5.0',
     platforms=['mac', 'unix'],
     packages=find_packages(),
-    install_requires=[],
+    setup_requires=[],
     python_requires='>=3.6',
     entry_points={'console_scripts': ['moseq2-pca = moseq2_pca.cli:cli']}
 )

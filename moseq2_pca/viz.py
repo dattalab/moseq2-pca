@@ -7,6 +7,19 @@ from scipy.stats import mode
 
 
 def display_components(components, cmap='gray', headless=False):
+    '''
+    Creates grid of computed Principal Components.
+    Parameters
+    ----------
+    components (np.ndarray): components to graph
+    cmap (str): color map to use
+    headless (bool): trim first element in PC list
+
+    Returns
+    -------
+    plt (plt.figure): figure to save/graph
+    ax (plt.ax): figure axis variable
+    '''
 
     im_size = int(np.sqrt(components.shape[1]))
     plotv = components.reshape((-1, im_size, im_size))
@@ -24,6 +37,17 @@ def display_components(components, cmap='gray', headless=False):
 
 
 def scree_plot(explained_variance_ratio, headless=False):
+    '''
+    Creates Scree plot describing principal components.
+    Parameters
+    ----------
+    explained_variance_ratio (np.array): explained variance ratio of each principal component
+    headless (bool): trim first element in PC list
+
+    Returns
+    -------
+    plt (plt.figure): figure to save/graph
+    '''
 
     csum = np.cumsum(explained_variance_ratio)*1e2
 
@@ -51,6 +75,18 @@ def scree_plot(explained_variance_ratio, headless=False):
 
 
 def changepoint_dist(cps, headless=False):
+    '''
+    Creates bar plot describing computed Changepoint Distribution.
+    Parameters
+    ----------
+    cps (np.ndarray): changepoints to graph
+    headless (bool): trim first element in PC list
+
+    Returns
+    -------
+    plt (plt.figure): figure to save/graph
+    ax (plt.ax): figure axis variable
+    '''
     if cps.size > 0:
 
         if headless:

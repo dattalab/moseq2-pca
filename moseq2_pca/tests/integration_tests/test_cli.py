@@ -1,9 +1,6 @@
 import os
-import pathlib
-import numpy as np
 from unittest import TestCase
 from click.testing import CliRunner
-from tempfile import TemporaryDirectory, NamedTemporaryFile
 from moseq2_pca.cli import clip_scores, train_pca, apply_pca, compute_changepoints
 
 

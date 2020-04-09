@@ -261,11 +261,6 @@ class TestUtils(TestCase):
 
     # TODO: possibly implement some kwargs edge cases
     def test_initialize_dask(self):
-        #original params: nworkers=50, processes=1, memory='4GB', cores=1,
-    #                     wall_time='01:00:00', queue='debug', local_processes=False,
-    #                     cluster_type='local', scheduler='distributed', timeout=10,
-    #                     cache_path=os.path.join(pathlib.Path.home(), 'moseq2_pca'),
-    #                     **kwargs
 
         nworkers = 50
         processes = 1
@@ -436,9 +431,9 @@ class TestUtils(TestCase):
         baseline = True
         timestamps = None
 
-        h5file = 'test_files/testh5.h5'
-        pca_scores = 'test_files/test_scores.h5'
-        yml = 'test_files/test_index.yaml'
+        h5file = 'data/testh5.h5'
+        pca_scores = 'data/test_scores.h5'
+        yml = 'data/test_index.yaml'
         fps = 30
         chunk_size = 5000
 

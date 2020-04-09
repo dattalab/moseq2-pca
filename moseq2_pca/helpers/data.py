@@ -8,6 +8,25 @@ import ruamel.yaml as yaml
 from moseq2_pca.util import recursive_find_h5s, select_strel, initialize_dask, get_timestamp_path
 
 def setup_cp_command(input_dir, config_data, output_dir, output_file, output_directory):
+    '''
+    Helper function for changepoints_wrapper to perform data-path existence checks.
+    Parameters
+    ----------
+    input_dir (int): path to directory containing all h5+yaml files
+    config_data (dict): dict of relevant PCA parameters (image filtering etc.)
+    output_dir (str): path to directory to store PCA data
+    output_file (str): pca model filename
+    output_directory (str): alternative output_dir
+
+    Returns
+    -------
+    config_data (dict): updated config_data dict with the proper paths
+    pca_file_components (str): path to trained pca file
+    pca_file_scores (str): path to pca_scores file
+    h5s (list): list of relevant pca h5 files
+    yamls (list): list of relevant pca metadata yaml files
+    save_file (str): path to save changepoints
+    '''
 
     params = locals()
     h5s, dicts, yamls = recursive_find_h5s('/'.join(input_dir.split('/')[:-2]))
@@ -46,6 +65,22 @@ def setup_cp_command(input_dir, config_data, output_dir, output_file, output_dir
     return config_data, pca_file_components, pca_file_scores, h5s, yamls, save_file
 
 def load_pcs_for_cp(pca_file_components, config_data):
+    '''
+    Load computed Principal Components.
+    Parameters
+    ----------
+    pca_file_components (str): path to pca h5 file to read PCs
+    config_data (dict): config parameters
+
+    Returns
+    -------
+    pca_components (str): path to pca components
+    changepoint_params (dict): dict of relevant changepoint parameters
+    cluster (dask Cluster): Dask Cluster object.
+    client (dask Client): Dask Client Object
+    missing_data (bool): Indicates whether to use mask_params
+    mask_params (dict): Mask parameters to use when computing CPs
+    '''
 
     dask_cache_path = os.path.join(pathlib.Path.home(), 'moseq2_pca')
 
@@ -98,6 +133,19 @@ def load_pcs_for_cp(pca_file_components, config_data):
     return pca_components, changepoint_params, cluster, client, missing_data, mask_params
 
 def get_pca_yaml_data(pca_yaml):
+    '''
+    Reads PCA yaml file and returns metadata
+    Parameters
+    ----------
+    pca_yaml (str): path to pca.yaml
+
+    Returns
+    -------
+    use_fft (bool): indicates whether to use FFT
+    clean_params (dict): dict of image filtering parameters
+    mask_params (dict): dict of mask parameters)
+    missing_data (bool): indicates whether to use mask_params
+    '''
 
     # todo detect missing data and mask parameters, then 0 out, fill in, compute scores...
     if os.path.exists(pca_yaml):

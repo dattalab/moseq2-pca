@@ -55,8 +55,21 @@ def command_with_config(config_file_param_name):
 def recursive_find_h5s(root_dir=os.getcwd(),
                        ext='.h5',
                        yaml_string='{}.yaml'):
-    """Recursively find h5 files, along with yaml files with the same basename
-    """
+    '''
+    Recursively find h5 files, along with yaml files with the same basename
+    Parameters
+    ----------
+    root_dir (str or os.Pathlike): path to directory to start recursive search
+    ext (str): extension to search for, e.g. .h5
+    yaml_string (str): a format to use to name yaml files
+
+    Returns
+    -------
+    h5s (list): list of h5 file paths
+    dicts (list): list of metadata file paths
+    yamls (list): list of yaml file paths
+    '''
+
     dicts = []
     h5s = []
     yamls = []
@@ -89,7 +102,19 @@ def recursive_find_h5s(root_dir=os.getcwd(),
 
 
 def gauss_smooth(signal, win_length=None, sig=1.5, kernel=None):
+    '''
+    Perform Gaussian Smoothing on a 1D signal.
+    Parameters
+    ----------
+    signal (1d numpy array): signal to perform smoothing
+    win_length (int): window_size for gaussian kernel filter
+    sig (float): variance of 1d gaussian kernel.
+    kernel (tuple): kernel size to use for smoothing
 
+    Returns
+    -------
+    result (1d numpy array): smoothed signal
+    '''
     if kernel is None:
         kernel = gaussian_kernel1d(n=win_length, sig=sig)
 
@@ -104,6 +129,17 @@ def gauss_smooth(signal, win_length=None, sig=1.5, kernel=None):
 
 
 def gaussian_kernel1d(n=None, sig=3):
+    '''
+    Get 1D gaussian kernel.
+    Parameters
+    ----------
+    n (int): number of points to use.
+    sig (int): variance of kernel to use.
+
+    Returns
+    -------
+    kernel (1d array): 1D numpy kernel.
+    '''
 
     if n is None:
         n = np.ceil(sig * 4)
@@ -119,6 +155,23 @@ def gaussian_kernel1d(n=None, sig=3):
 def clean_frames(frames, medfilter_space=None, gaussfilter_space=None,
                  medfilter_time=None, gaussfilter_time=None, detrend_time=None,
                  tailfilter=None, tail_threshold=5):
+    '''
+
+    Parameters
+    ----------
+    frames (3D numpy array): frames to filter.
+    medfilter_space (list): median spatial filter kernel.
+    gaussfilter_space (list): gaussian spatial filter kernel.
+    medfilter_time (list): median temporal filter.
+    gaussfilter_time (list): gaussian temporal filter.
+    detrend_time (int): number of frames to lag for.
+    tailfilter (int): size of tail-filter kernel.
+    tail_threshold (int): threshold value to use for tail filtering
+
+    Returns
+    -------
+    out (3D numpy array): filtered frames.
+    '''
 
     out = np.copy(frames)
 
@@ -159,6 +212,18 @@ def clean_frames(frames, medfilter_space=None, gaussfilter_space=None,
 
 
 def select_strel(string='e', size=(10, 10)):
+    '''
+    Selects Structuring Element Shape
+    Parameters
+    ----------
+    string (str): e for Ellipse, r for Rectangle
+    size (tuple): size of StructuringElement
+
+    Returns
+    -------
+    strel (cv2.StructuringElement): returned StructuringElement with specified size.
+    '''
+
     if string is None or 'none' in string or np.all(np.array(size) == 0):
         strel = None
     elif string[0].lower() == 'e':
@@ -171,6 +236,20 @@ def select_strel(string='e', size=(10, 10)):
 
 
 def insert_nans(timestamps, data, fps=30):
+    '''
+    Fills NaN values with 0 in timestamps.
+    Parameters
+    ----------
+    timestamps (1D array): timestamp time-strs
+    data (1D array): timestamp values
+    fps (int): frames per second
+
+    Returns
+    -------
+    filled_data (1D array): filled missing timestamp values.
+    data_idx (1D array): indices of inserted 0s
+    filled_timestamps (1D array): filled timestamp-strs
+    '''
 
     df_timestamps = np.diff(
         np.insert(timestamps, 0, timestamps[0] - 1.0 / fps))
@@ -206,6 +285,16 @@ def insert_nans(timestamps, data, fps=30):
 
 
 def read_yaml(yaml_file):
+    '''
+    Reads yaml file and returns dictionary representation of file contents.
+    Parameters
+    ----------
+    yaml_file (str): path to yaml file
+
+    Returns
+    -------
+    return_dict (dict): dict of yaml file contents
+    '''
 
     try:
         with open(yaml_file, 'r') as f:
@@ -221,7 +310,17 @@ def read_yaml(yaml_file):
 
 
 def get_timestamp_path(h5file):
-    '''Return path within h5 file that contains the kinect timestamps'''
+    '''
+    Return path within h5 file that contains the kinect timestamps
+    Parameters
+    ----------
+    h5file (str): path to h5 file.
+
+    Returns
+    -------
+    (str): path to metadata timestamps within h5 file
+    '''
+
     with h5py.File(h5file, 'r') as f:
         if '/timestamps' in f:
             return '/timestamps'
@@ -233,7 +332,17 @@ def get_timestamp_path(h5file):
 
 
 def get_metadata_path(h5file):
-    '''Return path within h5 file that contains the kinect extraction metadata'''
+    '''
+    Return path within h5 file that contains the kinect extraction metadata.
+    Parameters
+    ----------
+    h5file (str): path to h5 file.
+
+    Returns
+    -------
+    (str): path to acquistion metadata within h5 file.
+    '''
+
     with h5py.File(h5file, 'r') as f:
         if '/metadata/acquisition' in f:
             return '/metadata/acquisition'
@@ -244,9 +353,18 @@ def get_metadata_path(h5file):
 
 
 def recursively_load_dict_contents_from_group(h5file, path):
-    """
-    ....
-    """
+    '''
+
+    Parameters
+    ----------
+    h5file (str): path to h5 file
+    path (str): path to group within h5 file
+
+    Returns
+    -------
+    ans (dict): dictionary of all h5 group contents
+    '''
+
     ans = {}
 
     if type(h5file) is str:
@@ -268,6 +386,30 @@ def initialize_dask(nworkers=50, processes=1, memory='4GB', cores=1,
                     cluster_type='local', scheduler='distributed', timeout=10,
                     cache_path=os.path.join(pathlib.Path.home(), 'moseq2_pca'),
                     **kwargs):
+    '''
+
+    Parameters
+    ----------
+    nworkers (int): number of dask workers to initialize
+    processes (int): number of processes per worker
+    memory (str): amount of memory to allocate to dask cluster
+    cores (int): number of cores to use.
+    wall_time (str): amount of time to allow program to run
+    queue (str): logging mode
+    local_processes (bool): indicate whether the processes are local
+    cluster_type (str): indicate what cluster to use
+    scheduler (str): indicate what scheduler to use
+    timeout (int): number of worker timeouts to allow
+    cache_path (str or Pathlike): path to store cached data
+    kwargs: extra keyward arguments
+
+    Returns
+    -------
+    client (dask Client): initialized Client
+    cluster (dask Cluster): initialized Cluster
+    workers (dask Workers): intialized workers
+    cache (dask Chest): initialized Chest (cache) object
+    '''
 
     # only use distributed if we need it
 
@@ -373,15 +515,37 @@ def initialize_dask(nworkers=50, processes=1, memory='4GB', cores=1,
     return client, cluster, workers, cache
 
 
-# graceful shutdown...
-# https://github.com/dask/distributed/issues/1703#issuecomment-361291492
 @gen.coroutine
 def shutdown_dask(scheduler):
+    '''
+    Graceful shutdown dask scheduler.
+    source: https://github.com/dask/distributed/issues/1703#issuecomment-361291492
+    Parameters
+    ----------
+    scheduler (dask Scheduler): scheduler to shutdown.
+
+    Returns
+    -------
+    None
+    '''
+
     yield scheduler.retire_workers(workers=scheduler.workers, close_workers=True)
     yield scheduler.close()
 
 
 def get_rps(frames, rps=600, normalize=True):
+    '''
+    Get random projections of frames.
+    Parameters
+    ----------
+    frames (2D or 3D numpy array): Frames to get dimensions from.
+    rps (int): Number of random projections.
+    normalize (bool): indicates whether to normalize frames.
+
+    Returns
+    -------
+    rproj (2D or 3D numpy array): Computed random projections with same shape as frames
+    '''
 
     if frames.ndim == 3:
         use_frames = frames.reshape(-1, np.prod(frames.shape[1:]))
@@ -411,6 +575,23 @@ def get_rps(frames, rps=600, normalize=True):
 
 
 def get_changepoints(scores, k=5, sigma=3, peak_height=.5, peak_neighbors=1, baseline=True, timestamps=None):
+    '''
+
+    Parameters
+    ----------
+    scores (3D numpy array): nframes * r * c
+    k (int): klags - Lag to use for derivative calculation.
+    sigma (int): Standard deviation of gaussian smoothing filter.
+    peak_height (float): user-defined peak Changepoint length.
+    peak_neighbors (int): number of peaks in the CP curve.
+    baseline (bool): normalize data.
+    timestamps (array): loaded timestamps.
+
+    Returns
+    -------
+    cps (numpy array): array of values for CP curve
+    normed_df (numpy array): array of values for bar plot
+    '''
 
     if type(k) is not int:
         k = int(k)

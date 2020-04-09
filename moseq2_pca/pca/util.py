@@ -13,6 +13,18 @@ import logging
 
 
 def mask_data(original_data, mask, new_data):
+    '''
+    Create a mask subregion given a boolean mask if missing data flag is used.
+    Parameters
+    ----------
+    original_data (3d np.ndarray): input frames
+    mask (3d boolean np.ndarray): mask array
+    new_data (3d np.ndarray): frames to use
+
+    Returns
+    -------
+    output (3d np.ndarray): masked data array
+    '''
 
     # need to make a copy otherwise distributed scheduler barfs
     output = original_data.copy()
@@ -25,6 +37,28 @@ def train_pca_dask(dask_array, clean_params, use_fft, rank,
                    cluster_type, client, workers,
                    cache, mask=None, iters=10, recon_pcs=10,
                    min_height=10, max_height=100):
+    '''
+    Train PCA using dask arrays.
+    Parameters
+    ----------
+    dask_array (dask array): chunked frames to train PCA
+    clean_params (dict): dictionary containing filtering parameters
+    use_fft (bool): indicates whether to use 2d-FFT on images.
+    rank (int): Matrix rank to use
+    cluster_type (str): indicates which cluster to use.
+    client (Dask.Client): client object to execute dask operations
+    workers (int): number of dask workers
+    cache (str): path to cache directory
+    mask (dask array): dask array of masked data if missing_data parameter==True
+    iters (int): number of SVD iterations
+    recon_pcs (int): number of PCs to reconstruct. (if missing_data = True)
+    min_height (int): minimum mouse height from floor in (mm)
+    max_height (int): maximum mouse height from floor in (mm)
+
+    Returns
+    -------
+    output_dict (dict): dictionary containing PCA training results.
+    '''
 
     logger = logging.getLogger("distributed.utils_perf")
     logger.setLevel(logging.WARNING)
@@ -140,6 +174,26 @@ def train_pca_dask(dask_array, clean_params, use_fft, rank,
 # todo: for applying pca, run once to impute missing data, then get scores
 def apply_pca_local(pca_components, h5s, yamls, use_fft, clean_params,
                     save_file, chunk_size, mask_params, missing_data, fps=30):
+    '''
+    "Apply" trained PCA on input frame data to obtain PCA Scores
+    using local cluster/platform.
+    Parameters
+    ----------
+    pca_components (np.array): array of computed Principal Components
+    h5s (list): list of h5 files
+    yamls (list): list of yaml files
+    use_fft (bool): indicate whether to use 2D-FFT
+    clean_params (dict): dictionary containing filtering options
+    save_file (str): path to pca_scores filename to save
+    chunk_size (int): size of chunks to process
+    mask_params (dict): dictionary of masking parameters (if missing data)
+    missing_data (bool): indicates whether to use mask arrays.
+    fps (int): frames per second
+
+    Returns
+    -------
+    None
+    '''
 
     with h5py.File('{}.h5'.format(save_file), 'w') as f_scores:
         for h5, yml in tqdm.tqdm(zip(h5s, yamls), total=len(h5s),
@@ -207,6 +261,26 @@ def apply_pca_local(pca_components, h5s, yamls, use_fft, clean_params,
 def apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
                    save_file, chunk_size, mask_params, missing_data,
                    client, fps=30, gui=False):
+    '''
+    "Apply" trained PCA on input frame data to obtain PCA Scores using
+    Distributed Dask cluster.
+    Parameters
+    ----------
+    pca_components (np.array): array of computed Principal Components
+    h5s (list): list of h5 files
+    yamls (list): list of yaml files
+    use_fft (bool): indicate whether to use 2D-FFT
+    clean_params (dict): dictionary containing filtering options
+    save_file (str): path to pca_scores filename to save
+    chunk_size (int): size of chunks to process
+    mask_params (dict): dictionary of masking parameters (if missing data)
+    missing_data (bool): indicates whether to use mask arrays.
+    fps (int): frames per second
+
+    Returns
+    -------
+    None
+    '''
 
     logger = logging.getLogger("distributed.utils_perf")
     logger.setLevel(logging.WARNING)
@@ -305,6 +379,29 @@ def apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
 def get_changepoints_dask(changepoint_params, pca_components, h5s, yamls,
                           save_file, chunk_size, mask_params, missing_data,
                           client, fps=30, pca_scores=None, progress_bar=False, gui=False):
+    '''
+    Computes model-free changepoints using PCs and PC Scores on distributed dask cluster.
+    Parameters
+    ----------
+    changepoint_params (dict): dict of changepoint parameters
+    pca_components (np.array): computed principal components
+    h5s (list): list of h5 files
+    yamls (list): list of yaml files
+    save_file (str): path to save changepoint files
+    chunk_size (int): size of chunks to process in dask.
+    mask_params (dict): dict of missing_data mask parameters.
+    missing_data (bool): indicate whether to use mask_params
+    client (dask Client): initialized Dask Client object
+    fps (int): frames per second
+    pca_scores (np.array): computed principal component scores
+    progress_bar (bool): display progress bar
+    gui (bool): indicate GUI use
+
+    Returns
+    -------
+    None
+    '''
+
     futures = []
     uuids = []
     nrps = changepoint_params.pop('rps')

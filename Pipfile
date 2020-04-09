@@ -22,6 +22,7 @@ joblib = "*"
 cytoolz = "*"
 seaborn = '*'
 matplotlib = '*'
+moseq2-pca = {editable = true, path = "."}
 statsmodels = "*"
 ruamel_yaml = '*'
 distributed = '*'

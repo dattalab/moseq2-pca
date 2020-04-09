@@ -3,6 +3,21 @@ import ruamel.yaml as yaml
 from moseq2_pca.helpers.wrappers import train_pca_wrapper, apply_pca_wrapper, compute_changepoints_wrapper
 
 def train_pca_command(input_dir, config_file, output_dir, output_file, output_directory=None):
+    '''
+    Train PCA through Jupyter notebook, and updates config file.
+    Parameters
+    ----------
+    input_dir (str): path to directory containing training data
+    config_file (str): path to config file
+    output_dir (str): path to output pca directory
+    output_file (str): name of output pca file.
+    output_directory (str): alternative output directory path
+
+    Returns
+    -------
+    None
+    '''
+
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -15,6 +30,21 @@ def train_pca_command(input_dir, config_file, output_dir, output_file, output_di
         yaml.safe_dump(config_data, f)
 
 def apply_pca_command(input_dir, index_file, config_file, output_dir, output_file, output_directory=None):
+    '''
+
+    Parameters
+    ----------
+    input_dir (str): path to directory containing training data
+    index_file (str): path to index file.
+    config_file (str): path to config file
+    output_dir (str): path to output pca directory
+    output_file (str): name of output pca file.
+    output_directory (str): alternative output directory path
+
+    Returns
+    -------
+    (str): success string.
+    '''
 
     # find directories with .dat files that either have incomplete or no extractions
     # TODO: additional post-processing, intelligent mapping of metadata to group names, make sure
@@ -46,6 +76,20 @@ def apply_pca_command(input_dir, index_file, config_file, output_dir, output_fil
 
 
 def compute_changepoints_command(input_dir, config_file, output_dir, output_file, output_directory=None):
+    '''
+
+    Parameters
+    ----------
+    input_dir (str): path to directory containing training data
+    config_file (str): path to config file
+    output_dir (str): path to output pca directory
+    output_file (str): name of output pca file.
+    output_directory (str): alternative output directory path
+
+    Returns
+    -------
+    (str): success string.
+    '''
 
     with open(config_file, 'r') as f:
         config_data = yaml.safe_load(f)

@@ -13,6 +13,21 @@ from moseq2_pca.util import recursive_find_h5s, select_strel, initialize_dask, \
             recursively_load_dict_contents_from_group, get_timestamp_path, get_metadata_path, shutdown_dask
 
 def train_pca_wrapper(input_dir, config_data, output_dir, output_file, output_directory=None, gui=False):
+    '''
+    Wrapper function to train PCA.
+    Parameters
+    ----------
+    input_dir (int): path to directory containing all h5+yaml files
+    config_data (dict): dict of relevant PCA parameters (image filtering etc.)
+    output_dir (str): path to directory to store PCA data
+    output_file (str): pca model filename
+    output_directory (str): alternative output_dir
+    gui (bool): indicate GUI is running
+
+    Returns
+    -------
+    config_data (dict): updated config_data variable to write back in GUI API
+    '''
 
     dask_cache_path = os.path.join(pathlib.Path.home(), 'moseq2_pca')
     # find directories with .dat files that either have incomplete or no extractions
@@ -139,6 +154,22 @@ def train_pca_wrapper(input_dir, config_data, output_dir, output_file, output_di
         return config_data
 
 def apply_pca_wrapper(input_dir, config_data, output_dir, output_file, output_directory=None, gui=False):
+    '''
+    Wrapper function to obtain PCA Scores.
+    Parameters
+    ----------
+    input_dir (int): path to directory containing all h5+yaml files
+    config_data (dict): dict of relevant PCA parameters (image filtering etc.)
+    output_dir (str): path to directory to store PCA data
+    output_file (str): pca model filename
+    output_directory (str): alternative output_dir
+    gui (bool): indicate GUI is running
+
+    Returns
+    -------
+    config_data (dict): updated config_data variable to write back in GUI API
+    '''
+
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -232,6 +263,22 @@ def apply_pca_wrapper(input_dir, config_data, output_dir, output_file, output_di
         return config_data
 
 def compute_changepoints_wrapper(input_dir, config_data, output_dir, output_file, gui=False, output_directory=None):
+    '''
+    Wrapper function to compute model-free (PCA based) Changepoints.
+    Parameters
+    ----------
+    input_dir (int): path to directory containing all h5+yaml files
+    config_data (dict): dict of relevant PCA parameters (image filtering etc.)
+    output_dir (str): path to directory to store PCA data
+    output_file (str): pca model filename
+    output_directory (str): alternative output_dir
+    gui (bool): indicate GUI is running
+
+    Returns
+    -------
+    config_data (dict): updated config_data variable to write back in GUI API
+    '''
+
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     warnings.filterwarnings("ignore", category=UserWarning)
 
