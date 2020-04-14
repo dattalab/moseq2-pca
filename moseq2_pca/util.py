@@ -57,6 +57,7 @@ def recursive_find_h5s(root_dir=os.getcwd(),
                        yaml_string='{}.yaml'):
     '''
     Recursively find h5 files, along with yaml files with the same basename
+
     Parameters
     ----------
     root_dir (str or os.Pathlike): path to directory to start recursive search
@@ -104,6 +105,7 @@ def recursive_find_h5s(root_dir=os.getcwd(),
 def gauss_smooth(signal, win_length=None, sig=1.5, kernel=None):
     '''
     Perform Gaussian Smoothing on a 1D signal.
+
     Parameters
     ----------
     signal (1d numpy array): signal to perform smoothing
@@ -131,6 +133,7 @@ def gauss_smooth(signal, win_length=None, sig=1.5, kernel=None):
 def gaussian_kernel1d(n=None, sig=3):
     '''
     Get 1D gaussian kernel.
+
     Parameters
     ----------
     n (int): number of points to use.
@@ -156,6 +159,8 @@ def clean_frames(frames, medfilter_space=None, gaussfilter_space=None,
                  medfilter_time=None, gaussfilter_time=None, detrend_time=None,
                  tailfilter=None, tail_threshold=5):
     '''
+    Filters spatial/temporal noise from frames using Median and Gaussian filters,
+    given kernel sizes for each respective requested filter.
 
     Parameters
     ----------
@@ -214,6 +219,7 @@ def clean_frames(frames, medfilter_space=None, gaussfilter_space=None,
 def select_strel(string='e', size=(10, 10)):
     '''
     Selects Structuring Element Shape
+
     Parameters
     ----------
     string (str): e for Ellipse, r for Rectangle
@@ -238,6 +244,7 @@ def select_strel(string='e', size=(10, 10)):
 def insert_nans(timestamps, data, fps=30):
     '''
     Fills NaN values with 0 in timestamps.
+
     Parameters
     ----------
     timestamps (1D array): timestamp time-strs
@@ -287,6 +294,7 @@ def insert_nans(timestamps, data, fps=30):
 def read_yaml(yaml_file):
     '''
     Reads yaml file and returns dictionary representation of file contents.
+
     Parameters
     ----------
     yaml_file (str): path to yaml file
@@ -312,6 +320,7 @@ def read_yaml(yaml_file):
 def get_timestamp_path(h5file):
     '''
     Return path within h5 file that contains the kinect timestamps
+
     Parameters
     ----------
     h5file (str): path to h5 file.
@@ -334,6 +343,7 @@ def get_timestamp_path(h5file):
 def get_metadata_path(h5file):
     '''
     Return path within h5 file that contains the kinect extraction metadata.
+
     Parameters
     ----------
     h5file (str): path to h5 file.
@@ -354,6 +364,7 @@ def get_metadata_path(h5file):
 
 def recursively_load_dict_contents_from_group(h5file, path):
     '''
+    Reads all contents from h5 and returns them in a nested dict object.
 
     Parameters
     ----------
@@ -387,6 +398,7 @@ def initialize_dask(nworkers=50, processes=1, memory='4GB', cores=1,
                     cache_path=os.path.join(pathlib.Path.home(), 'moseq2_pca'),
                     **kwargs):
     '''
+    Initialize dask client, cluster, workers, etc.
 
     Parameters
     ----------
@@ -520,6 +532,7 @@ def shutdown_dask(scheduler):
     '''
     Graceful shutdown dask scheduler.
     source: https://github.com/dask/distributed/issues/1703#issuecomment-361291492
+
     Parameters
     ----------
     scheduler (dask Scheduler): scheduler to shutdown.
@@ -536,6 +549,7 @@ def shutdown_dask(scheduler):
 def get_rps(frames, rps=600, normalize=True):
     '''
     Get random projections of frames.
+
     Parameters
     ----------
     frames (2D or 3D numpy array): Frames to get dimensions from.
@@ -576,6 +590,7 @@ def get_rps(frames, rps=600, normalize=True):
 
 def get_changepoints(scores, k=5, sigma=3, peak_height=.5, peak_neighbors=1, baseline=True, timestamps=None):
     '''
+    Compute changepoints distribution and CP Curve.
 
     Parameters
     ----------

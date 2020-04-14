@@ -15,6 +15,7 @@ from moseq2_pca.util import recursive_find_h5s, select_strel, initialize_dask, \
 def train_pca_wrapper(input_dir, config_data, output_dir, output_file, output_directory=None, gui=False):
     '''
     Wrapper function to train PCA.
+
     Parameters
     ----------
     input_dir (int): path to directory containing all h5+yaml files
@@ -156,6 +157,7 @@ def train_pca_wrapper(input_dir, config_data, output_dir, output_file, output_di
 def apply_pca_wrapper(input_dir, config_data, output_dir, output_file, output_directory=None, gui=False):
     '''
     Wrapper function to obtain PCA Scores.
+
     Parameters
     ----------
     input_dir (int): path to directory containing all h5+yaml files
@@ -265,6 +267,7 @@ def apply_pca_wrapper(input_dir, config_data, output_dir, output_file, output_di
 def compute_changepoints_wrapper(input_dir, config_data, output_dir, output_file, gui=False, output_directory=None):
     '''
     Wrapper function to compute model-free (PCA based) Changepoints.
+
     Parameters
     ----------
     input_dir (int): path to directory containing all h5+yaml files

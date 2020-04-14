@@ -9,6 +9,7 @@ from scipy.stats import mode
 def display_components(components, cmap='gray', headless=False):
     '''
     Creates grid of computed Principal Components.
+
     Parameters
     ----------
     components (np.ndarray): components to graph
@@ -39,6 +40,7 @@ def display_components(components, cmap='gray', headless=False):
 def scree_plot(explained_variance_ratio, headless=False):
     '''
     Creates Scree plot describing principal components.
+
     Parameters
     ----------
     explained_variance_ratio (np.array): explained variance ratio of each principal component
@@ -77,6 +79,7 @@ def scree_plot(explained_variance_ratio, headless=False):
 def changepoint_dist(cps, headless=False):
     '''
     Creates bar plot describing computed Changepoint Distribution.
+
     Parameters
     ----------
     cps (np.ndarray): changepoints to graph

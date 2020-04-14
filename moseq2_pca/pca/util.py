@@ -15,6 +15,7 @@ import logging
 def mask_data(original_data, mask, new_data):
     '''
     Create a mask subregion given a boolean mask if missing data flag is used.
+
     Parameters
     ----------
     original_data (3d np.ndarray): input frames
@@ -39,6 +40,7 @@ def train_pca_dask(dask_array, clean_params, use_fft, rank,
                    min_height=10, max_height=100):
     '''
     Train PCA using dask arrays.
+
     Parameters
     ----------
     dask_array (dask array): chunked frames to train PCA
@@ -177,6 +179,7 @@ def apply_pca_local(pca_components, h5s, yamls, use_fft, clean_params,
     '''
     "Apply" trained PCA on input frame data to obtain PCA Scores
     using local cluster/platform.
+
     Parameters
     ----------
     pca_components (np.array): array of computed Principal Components
@@ -264,6 +267,7 @@ def apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
     '''
     "Apply" trained PCA on input frame data to obtain PCA Scores using
     Distributed Dask cluster.
+
     Parameters
     ----------
     pca_components (np.array): array of computed Principal Components
@@ -381,6 +385,7 @@ def get_changepoints_dask(changepoint_params, pca_components, h5s, yamls,
                           client, fps=30, pca_scores=None, progress_bar=False, gui=False):
     '''
     Computes model-free changepoints using PCs and PC Scores on distributed dask cluster.
+
     Parameters
     ----------
     changepoint_params (dict): dict of changepoint parameters

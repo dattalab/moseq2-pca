@@ -5,6 +5,7 @@ from moseq2_pca.helpers.wrappers import train_pca_wrapper, apply_pca_wrapper, co
 def train_pca_command(input_dir, config_file, output_dir, output_file, output_directory=None):
     '''
     Train PCA through Jupyter notebook, and updates config file.
+
     Parameters
     ----------
     input_dir (str): path to directory containing training data
@@ -31,6 +32,7 @@ def train_pca_command(input_dir, config_file, output_dir, output_file, output_di
 
 def apply_pca_command(input_dir, index_file, config_file, output_dir, output_file, output_directory=None):
     '''
+    Compute PCA Scores given trained PCA using Jupyter Notebook.
 
     Parameters
     ----------
@@ -77,6 +79,7 @@ def apply_pca_command(input_dir, index_file, config_file, output_dir, output_fil
 
 def compute_changepoints_command(input_dir, config_file, output_dir, output_file, output_directory=None):
     '''
+    Compute Changepoint distribution using Jupyter Notebook.
 
     Parameters
     ----------
