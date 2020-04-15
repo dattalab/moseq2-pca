@@ -55,8 +55,8 @@ def setup_cp_command(input_dir, config_data, output_dir, output_file, output_dir
     else:
         pca_file_scores = config_data['pca_file_scores']
 
-    if not os.path.exists(config_data['pca_file_components']):
-        raise IOError('Could not find PCA components file {}'.format(config_data['pca_file_components']))
+    if not os.path.exists(pca_file_components):
+        raise IOError(f'Could not find PCA components file {pca_file_components}')
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -91,7 +91,7 @@ def load_pcs_for_cp(pca_file_components, config_data):
         pca_components = f[config_data['pca_path']][...]
 
     # get the yaml for pca, check parameters, if we used fft, be sure to turn on here...
-    pca_yaml = '{}.yaml'.format(os.path.splitext(config_data['pca_file_components'])[0])
+    pca_yaml = os.path.splitext(pca_file_components)[0] + '.yaml'
 
     # todo detect missing data and mask parameters, then 0 out, fill in, compute scores...
     if os.path.exists(pca_yaml):
@@ -185,6 +185,6 @@ def get_pca_yaml_data(pca_yaml):
                 missing_data = False
 
     else:
-        IOError('Could not find {}'.format(pca_yaml))
+        IOError(f'Could not find {pca_yaml}')
 
     return use_fft, clean_params, mask_params, missing_data

@@ -16,7 +16,7 @@ setup(
     name='moseq2-pca',
     author='Jeff Markowitz',
     description='To boldly go where no mouse has gone before',
-    version='0.5.0',
+    version='0.5.1',
     platforms=['mac', 'unix'],
     packages=find_packages(),
     setup_requires=[],
