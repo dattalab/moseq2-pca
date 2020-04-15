@@ -12,15 +12,14 @@ Subpackages
    moseq2_pca.tests
 
 CLI Module
-----------------------
+==========
 
-.. automodule:: moseq2_pca.cli
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. click:: moseq2_pca.cli:cli
+    :prog: cli
+    :show-nested:
 
 GUI Module
-----------------------
+==========
 
 .. automodule:: moseq2_pca.gui
    :members:
@@ -28,7 +27,7 @@ GUI Module
    :show-inheritance:
 
 Utilities Module
------------------------
+================
 
 .. automodule:: moseq2_pca.util
    :members:
@@ -36,7 +35,7 @@ Utilities Module
    :show-inheritance:
 
 Visualization Module
-----------------------
+====================
 
 .. automodule:: moseq2_pca.viz
    :members:
