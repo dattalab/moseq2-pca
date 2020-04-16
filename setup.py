@@ -19,7 +19,7 @@ setup(
     version='0.5.1',
     platforms=['mac', 'unix'],
     packages=find_packages(),
-    setup_requires=[],
+    install_requires=[],
     python_requires='>=3.6',
     entry_points={'console_scripts': ['moseq2-pca = moseq2_pca.cli:cli']}
 )
