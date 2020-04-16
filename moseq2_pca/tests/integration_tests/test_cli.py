@@ -49,11 +49,9 @@ class TestCli(TestCase):
 
 
     def test_apply_pca(self):
-        data_dir = 'data/_pca/'
+        data_dir = 'data/'
 
-        outpath = 'tmp_pca'
-        if not os.path.exists(outpath):
-            os.makedirs(outpath)
+        outpath = '_pca'
 
         apply_params_local = ['-i', data_dir,
                               '-o', outpath,
@@ -66,19 +64,15 @@ class TestCli(TestCase):
                           apply_params_local,
                           catch_exceptions=False)
 
-        assert os.path.exists(outpath)
+        assert os.path.exists(os.path.join(data_dir, outpath))
         assert os.path.exists(os.path.join('data', outpath, 'pca_scores1.h5'))
         assert result.exit_code == 0
 
-        for file in os.listdir(os.path.join('data', outpath)):
-            os.remove(os.path.join('data', outpath, file))
-        os.removedirs(os.path.join('data', outpath))
-
-
+        os.remove(os.path.join('data', outpath, 'pca_scores1.h5'))
 
     def test_compute_changepoints(self):
-        data_path = 'data/_pca/'
-        outpath = 'tmp_pca'
+        data_path = 'data/'
+        outpath = '_pca'
         if not os.path.exists(outpath):
             os.makedirs(outpath)
 
@@ -94,9 +88,10 @@ class TestCli(TestCase):
 
         assert os.path.exists(outpath)
         assert os.path.exists(os.path.join('data', outpath, 'changepoints1.h5'))
+        assert os.path.exists(os.path.join('data', outpath, 'changepoints1_dist.pdf'))
+        assert os.path.exists(os.path.join('data', outpath, 'changepoints1_dist.png'))
         assert result.exit_code == 0
 
-        for file in os.listdir(os.path.join('data', outpath)):
-            os.remove(os.path.join('data', outpath, file))
-        os.removedirs(os.path.join('data', outpath))
-
+        os.remove(os.path.join('data', outpath, 'changepoints1.h5'))
+        os.remove(os.path.join('data', outpath, 'changepoints1_dist.png'))
+        os.remove(os.path.join('data', outpath, 'changepoints1_dist.pdf'))

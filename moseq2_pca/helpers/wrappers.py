@@ -185,20 +185,23 @@ def apply_pca_wrapper(input_dir, config_data, output_dir, output_file, output_di
             outpath = '/'.join(input_dir.split('/')[:-2])
             output_dir = os.path.join(outpath, output_dir)  # outputting pca folder in inputted base directory.
         else:
-            output_dir = os.path.join('/'.join(input_dir.split('/')[:-2]), output_dir)  # outputting pca folder in inputted base directory.
+            output_dir = os.path.join(input_dir, output_dir)  # outputting pca folder in inputted base directory.
     else:
         output_dir = os.path.join(output_directory, output_dir)
 
     # automatically get the correct timestamp path
-    #h5_timestamp_path = get_timestamp_path(h5s[0])
-    #h5_metadata_path = get_metadata_path(h5s[0])
+    try:
+        h5_timestamp_path = get_timestamp_path(h5s[0])
+        h5_metadata_path = get_metadata_path(h5s[0])
+    except:
+        print('Autoload timestamps failed, will perform search.')
 
     if config_data['pca_file'] is None:
-        pca_file = os.path.join(input_dir, 'pca.h5')
+        pca_file = os.path.join(output_dir, 'pca.h5')
         config_data['pca_file'] = pca_file
     else:
         if not os.path.exists(config_data['pca_file']):
-            pca_file = os.path.join(input_dir, 'pca.h5')
+            pca_file = os.path.join(output_dir, 'pca.h5')
             config_data['pca_file'] = pca_file
         else:
             pca_file = config_data['pca_file']

@@ -1,5 +1,6 @@
 import warnings
 import ruamel.yaml as yaml
+from .cli import train_pca, apply_pca, compute_changepoints
 from moseq2_pca.helpers.wrappers import train_pca_wrapper, apply_pca_wrapper, compute_changepoints_wrapper
 
 def train_pca_command(input_dir, config_file, output_dir, output_file, output_directory=None):
@@ -24,6 +25,14 @@ def train_pca_command(input_dir, config_file, output_dir, output_file, output_di
 
     with open(config_file, 'r') as f:
         config_data = yaml.safe_load(f)
+
+    # Get default CLI params
+    objs = train_pca.params
+
+    params = {tmp.name: tmp.default for tmp in objs if not tmp.required}
+    for k, v in params.items():
+        if k not in config_data.keys():
+            config_data[k] = v
 
     config_data = train_pca_wrapper(input_dir, config_data, output_dir, output_file, output_directory, gui=True)
 
@@ -54,6 +63,14 @@ def apply_pca_command(input_dir, index_file, config_file, output_dir, output_fil
 
     with open(config_file, 'r') as f:
         config_data = yaml.safe_load(f)
+
+    # Get default CLI params
+    objs = apply_pca.params
+
+    params = {tmp.name: tmp.default for tmp in objs if not tmp.required}
+    for k, v in params.items():
+        if k not in config_data.keys():
+            config_data[k] = v
 
     config_data = apply_pca_wrapper(input_dir, config_data, output_dir, output_file, output_directory=output_directory, gui=True)
 
@@ -96,6 +113,14 @@ def compute_changepoints_command(input_dir, config_file, output_dir, output_file
 
     with open(config_file, 'r') as f:
         config_data = yaml.safe_load(f)
+
+    # Get default CLI params
+    objs = compute_changepoints.params
+
+    params = {tmp.name: tmp.default for tmp in objs if not tmp.required}
+    for k, v in params.items():
+        if k not in config_data.keys():
+            config_data[k] = v
 
     config_data = compute_changepoints_wrapper(input_dir, config_data, output_dir, output_file, gui=True, output_directory=output_directory)
 

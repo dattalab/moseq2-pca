@@ -30,27 +30,34 @@ def setup_cp_command(input_dir, config_data, output_dir, output_file, output_dir
     '''
 
     params = locals()
-    h5s, dicts, yamls = recursive_find_h5s('/'.join(input_dir.split('/')[:-2]))
 
-    #h5_timestamp_path = get_timestamp_path(h5s[0])
+    if os.path.exists(os.path.join(input_dir, 'aggregate_results/')):
+        h5s, dicts, yamls = recursive_find_h5s(os.path.join(input_dir, 'aggregate_results/'))
+    else:
+        h5s, dicts, yamls = recursive_find_h5s(input_dir)
+
+    try:
+        h5_timestamp_path = get_timestamp_path(h5s[0])
+    except:
+        pass
 
     if output_directory is None:
-        output_dir = os.path.join('/'.join(input_dir.split('/')[:-2]), output_dir)  # outputting pca folder in inputted base directory.
+        output_dir = os.path.join(input_dir, output_dir)  # outputting pca folder in inputted base directory.
     else:
         output_dir = os.path.join(output_directory, output_dir)
 
-    if config_data['pca_file_components'] is None:
-        pca_file_components = os.path.join(input_dir, 'pca.h5')
+    if config_data.get('pca_file_components') is None:
+        pca_file_components = os.path.join(output_dir, 'pca.h5')
         config_data['pca_file_components'] = pca_file_components
     else:
         if not os.path.exists(config_data['pca_file_components']):
-            pca_file_components = os.path.join(input_dir, 'pca.h5')
+            pca_file_components = os.path.join(output_dir, 'pca.h5')
             config_data['pca_file_components'] = pca_file_components
         else:
             pca_file_components = config_data['pca_file_components']
 
-    if config_data['pca_file_scores'] is None:
-        pca_file_scores = os.path.join(input_dir, 'pca_scores.h5')
+    if config_data.get('pca_file_scores') is None:
+        pca_file_scores = os.path.join(output_dir, 'pca_scores.h5')
         config_data['pca_file_scores'] = pca_file_scores
     else:
         pca_file_scores = config_data['pca_file_scores']
