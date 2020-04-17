@@ -19,7 +19,10 @@ setup(
     version='0.5.1',
     platforms=['mac', 'unix'],
     packages=find_packages(),
-    install_requires=[],
+    install_requires=['h5py', 'dask', 'tqdm', 'bokeh', 'chest', 'scipy',
+                      'numpy', 'click', 'psutil', 'joblib', 'cytoolz', 'matplotlib',
+                      'statsmodels', 'ruamel.yaml', 'distributed', 'scikit-image',
+                      'scikit-learn', 'dask.jobqueue', 'opencv-python'],
     python_requires='>=3.6',
     entry_points={'console_scripts': ['moseq2-pca = moseq2_pca.cli:cli']}
 )
