@@ -126,11 +126,17 @@ def add_groups(index_file, pca_file):
 @click.option('-m', '--memory', type=str, default="15GB", help="Total RAM usage per worker")
 @click.option('-w', '--wall-time', type=str, default="06:00:00", help="Wall time for workers")
 @click.option('--timeout', type=float, default=5, help="Time to wait for workers to initialize before proceeding (minutes)")
+def _train_pca(**kwargs):
+    return train_pca(**kwargs)
+
+
 def train_pca(input_dir, cluster_type, output_dir, gaussfilter_space,
-              gaussfilter_time, medfilter_space, medfilter_time, missing_data, missing_data_iters, mask_threshold, mask_height_threshold, min_height, max_height, tailfilter_size,
-              tailfilter_shape, use_fft, recon_pcs, rank, output_file, chunk_size,
-              visualize_results, config_file, dask_cache_path, local_processes, queue, nworkers,
-              cores, processes, memory, wall_time, timeout):
+              gaussfilter_time, medfilter_space, medfilter_time, missing_data,
+              missing_data_iters, mask_threshold, mask_height_threshold,
+              min_height, max_height, tailfilter_size, tailfilter_shape,
+              use_fft, recon_pcs, rank, output_file, chunk_size,
+              visualize_results, config_file, dask_cache_path, local_processes,
+              queue, nworkers, cores, processes, memory, wall_time, timeout):
 
     # find directories with .dat files that either have incomplete or no extractions
 
@@ -254,6 +260,10 @@ def train_pca(input_dir, cluster_type, output_dir, gaussfilter_space,
 @click.option('-m', '--memory', type=str, default="15GB", help="RAM usage per workers")
 @click.option('-w', '--wall-time', type=str, default="06:00:00", help="Wall time for workers")
 @click.option('--timeout', type=float, default=5, help="Time to wait for workers to initialize before proceeding (minutes)")
+def _apply_pca(**kwargs):
+    return apply_pca(**kwargs)
+
+
 def apply_pca(input_dir, cluster_type, output_dir, output_file, h5_path, h5_mask_path,
               pca_path, pca_file, chunk_size, fill_gaps, fps, detrend_window,
               config_file, dask_cache_path, queue, nworkers, cores, processes, memory, wall_time, timeout):
@@ -387,6 +397,10 @@ def apply_pca(input_dir, cluster_type, output_dir, output_file, h5_path, h5_mask
 @click.option('-m', '--memory', type=str, default="15GB", help="RAM usage per workers")
 @click.option('-w', '--wall-time', type=str, default="06:00:00", help="Wall time for workers")
 @click.option('--timeout', type=float, default=5, help="Time to wait for workers to initialize before proceeding (minutes)")
+def _compute_changepoints(**kwargs):
+    return compute_changepoints(**kwargs)
+
+
 def compute_changepoints(input_dir, output_dir, output_file, cluster_type, pca_file_components,
                          pca_file_scores, pca_path, neighbors, threshold, klags, sigma, dims, fps, h5_path,
                          h5_mask_path, chunk_size, config_file, dask_cache_path,
