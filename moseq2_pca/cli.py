@@ -297,7 +297,7 @@ def apply_pca(
         h5_path='/frames',
         h5_mask_path='/frames_mask',
         pca_path='/components',
-        pca_fileNone,
+        pca_file=None,
         chunk_size=4000,
         fill_gaps=True,
         fps=30,
@@ -308,7 +308,7 @@ def apply_pca(
         nworkers=10,
         cores=1,
         processes=1,
-        memory"15GB",
+        memory="15GB",
         wall_time="06:00:00",
         timeout=5):
     # find directories with .dat files that either have incomplete or no extractions
