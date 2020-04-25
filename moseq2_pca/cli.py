@@ -138,7 +138,7 @@ def train_pca(
         gaussfilter_time=0,
         medfilter_space=0,
         medfilter_time=[0],
-        missing_data=True,
+        missing_data=False,
         missing_data_iters=10,
         mask_threshold=16,
         mask_height_threshold=5,
