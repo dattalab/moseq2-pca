@@ -306,7 +306,7 @@ def initialize_dask(nworkers=50, processes=1, memory='4GB', cores=1,
                               "SURE THESE SETTINGS ARE CORRECT!!!"
                               ).format(cores, nworkers, memory)
             warnings.warn(warning_string)
-            input('Press ENTER to continue...')
+            # input('Press ENTER to continue...')
 
         cluster = LocalCluster(n_workers=nworkers,
                                threads_per_worker=cores,
