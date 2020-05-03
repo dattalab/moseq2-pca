@@ -130,13 +130,38 @@ def _train_pca(**kwargs):
     return train_pca(**kwargs)
 
 
-def train_pca(input_dir, cluster_type, output_dir, gaussfilter_space,
-              gaussfilter_time, medfilter_space, medfilter_time, missing_data,
-              missing_data_iters, mask_threshold, mask_height_threshold,
-              min_height, max_height, tailfilter_size, tailfilter_shape,
-              use_fft, recon_pcs, rank, output_file, chunk_size,
-              visualize_results, config_file, dask_cache_path, local_processes,
-              queue, nworkers, cores, processes, memory, wall_time, timeout):
+def train_pca(
+        input_dir,
+        output_dir,
+        cluster_type='local',
+        gaussfilter_space=(1.5, 1),
+        gaussfilter_time=0,
+        medfilter_space=0,
+        medfilter_time=[0],
+        missing_data=False,
+        missing_data_iters=10,
+        mask_threshold=16,
+        mask_height_threshold=5,
+        min_height=10,
+        max_height=100,
+        tailfilter_size=(9, 9),
+        tailfilter_shape='ellipse',
+        use_fft=True,
+        recon_pcs=10,
+        rank=50,
+        output_file='pca',
+        chunk_size=4000,
+        visualize_results=True,
+        config_file=None,
+        dask_cache_path=(pathlib.Path.home() / 'moseq2_pca').as_posix(),
+        local_processes=True,
+        queue='debug',
+        nworkers=10,
+        cores=1,
+        processes=1,
+        memory="15GB",
+        wall_time="06:00:00",
+        timeout=5):
 
     # find directories with .dat files that either have incomplete or no extractions
 
@@ -264,9 +289,28 @@ def _apply_pca(**kwargs):
     return apply_pca(**kwargs)
 
 
-def apply_pca(input_dir, cluster_type, output_dir, output_file, h5_path, h5_mask_path,
-              pca_path, pca_file, chunk_size, fill_gaps, fps, detrend_window,
-              config_file, dask_cache_path, queue, nworkers, cores, processes, memory, wall_time, timeout):
+def apply_pca(
+        input_dir,
+        output_dir,
+        cluster_type='local',
+        output_file='pca_scores',
+        h5_path='/frames',
+        h5_mask_path='/frames_mask',
+        pca_path='/components',
+        pca_file=None,
+        chunk_size=4000,
+        fill_gaps=True,
+        fps=30,
+        detrend_window=0,
+        config_file=None,
+        dask_cache_path=(pathlib.Path.home() / 'moseq2_pca').as_posix(),
+        queue='debug',
+        nworkers=10,
+        cores=1,
+        processes=1,
+        memory="15GB",
+        wall_time="06:00:00",
+        timeout=5):
     # find directories with .dat files that either have incomplete or no extractions
     # TODO: additional post-processing, intelligent mapping of metadata to group names, make sure
     # moseq2-model processes these files correctly
@@ -401,10 +445,33 @@ def _compute_changepoints(**kwargs):
     return compute_changepoints(**kwargs)
 
 
-def compute_changepoints(input_dir, output_dir, output_file, cluster_type, pca_file_components,
-                         pca_file_scores, pca_path, neighbors, threshold, klags, sigma, dims, fps, h5_path,
-                         h5_mask_path, chunk_size, config_file, dask_cache_path,
-                         visualize_results, queue, nworkers, cores, processes, memory, wall_time, timeout):
+def compute_changepoints(
+        input_dir,
+        output_dir,
+        cluster_type='local',
+        pca_file_components=None,
+        pca_file_scores=None,
+        output_file='changepoints',
+        pca_path='/components',
+        neighbors=1,
+        threshold=0.5,
+        klags=6,
+        sigma=3.5,
+        dims=300,
+        fps=30,
+        h5_path='/frames',
+        h5_mask_path='/frames_mask',
+        chunk_size=4000,
+        config_file=None,
+        dask_cache_path=(pathlib.Path.home() / 'moseq2_pca').as_posix(),
+        visualize_results=True,
+        queue='debug',
+        nworkers=10,
+        cores=1,
+        processes=1,
+        memory="15GB",
+        wall_time="06:00:00",
+        timeout=5):
 
     params = locals()
     h5s, dicts, yamls = recursive_find_h5s(input_dir)
