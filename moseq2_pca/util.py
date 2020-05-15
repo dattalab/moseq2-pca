@@ -176,6 +176,7 @@ def insert_nans(timestamps, data, fps=30):
     df_timestamps = np.diff(
         np.insert(timestamps, 0, timestamps[0] - 1.0 / fps))
     missing_frames = np.floor(df_timestamps / (1.0 / fps))
+
     fill_idx = np.where(missing_frames > 1)[0]
     data_idx = np.arange(len(timestamps)).astype('float64')
 
@@ -191,6 +192,7 @@ def insert_nans(timestamps, data, fps=30):
     nframes, nfeatures = filled_data.shape
 
     for idx in fill_idx[::-1]:
+        if idx >= len(missing_frames)-1: continue # ensures ninserts value remains an int
         ninserts = int(missing_frames[idx] - 1)
         data_idx = np.insert(data_idx, idx, [np.nan] * ninserts)
         insert_timestamps = timestamps[idx - 1] + \
