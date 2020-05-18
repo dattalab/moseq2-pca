@@ -209,7 +209,7 @@ def train_pca(input_dir, cluster_type, output_dir, h5_path, h5_mask_path, gaussf
                        rank=rank, cluster_type=cluster_type, min_height=min_height,
                        max_height=max_height, client=client,
                        iters=missing_data_iters, workers=workers, cache=cache,
-                       recon_pcs=recon_pcs, h5_path=h5_path, h5_mask_path=h5_mask_path)
+                       recon_pcs=recon_pcs)
 
 
     if cluster is not None:

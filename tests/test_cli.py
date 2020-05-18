@@ -255,7 +255,7 @@ def test_apply_pca():
                           '--timeout', 5]
     runner = CliRunner()
 
-    result = runner.invoke(train_pca,
+    result = runner.invoke(apply_pca,
                       apply_params_local,
                       catch_exceptions=False)
 
