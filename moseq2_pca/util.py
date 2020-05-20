@@ -192,15 +192,16 @@ def insert_nans(timestamps, data, fps=30):
     nframes, nfeatures = filled_data.shape
 
     for idx in fill_idx[::-1]:
-        if idx >= len(missing_frames)-1: continue # ensures ninserts value remains an int
-        ninserts = int(missing_frames[idx] - 1)
-        data_idx = np.insert(data_idx, idx, [np.nan] * ninserts)
-        insert_timestamps = timestamps[idx - 1] + \
-            np.cumsum(np.ones(ninserts,) * 1.0 / fps)
-        filled_data = np.insert(filled_data, idx,
-                                np.ones((ninserts, nfeatures)) * np.nan, axis=0)
-        filled_timestamps = np.insert(
-            filled_timestamps, idx, insert_timestamps)
+        # removes change of IndexError/Overflow error
+        if idx < len(missing_frames):
+            ninserts = int(missing_frames[idx] - 1)
+            data_idx = np.insert(data_idx, idx, [np.nan] * ninserts)
+            insert_timestamps = timestamps[idx - 1] + \
+                np.cumsum(np.ones(ninserts,) * 1.0 / fps)
+            filled_data = np.insert(filled_data, idx,
+                                    np.ones((ninserts, nfeatures)) * np.nan, axis=0)
+            filled_timestamps = np.insert(
+                filled_timestamps, idx, insert_timestamps)
 
     if isvec:
         filled_data = np.squeeze(filled_data)
