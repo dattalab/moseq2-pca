@@ -18,6 +18,7 @@ import pathlib
 import psutil
 import platform
 import re
+import pdb
 
 
 # from https://stackoverflow.com/questions/46358797/
@@ -66,7 +67,7 @@ def recursive_find_h5s(root_dir=os.getcwd(),
             try:
                 if file.endswith(ext):
                     with h5py.File(os.path.join(root, file), 'r') as f:
-                        if 'frames' not in f.keys():
+                        if 'frames' not in f.keys() and 'embedding' not in f.keys():
                             continue
                     dct = read_yaml(os.path.join(root, yaml_file))
                     if 'uuid' in dct.keys() and dct['uuid'] not in uuids:

@@ -8,7 +8,7 @@ import numpy as np
 import h5py
 import tqdm
 import warnings
-
+import pdb
 
 def mask_data(original_data, mask, new_data):
 
@@ -24,45 +24,54 @@ def train_pca_dask(dask_array, clean_params, use_fft, rank,
                    cache, mask=None, iters=10, recon_pcs=10,
                    min_height=10, max_height=100):
 
+
+    #pdb.set_trace()
     missing_data = False
     rechunked = False
-    _, r, c = dask_array.shape
-    nfeatures = r * c
 
-    original_chunks = dask_array.chunks[0][0]
+    if dask_array.ndim == 3:
+        missing_data = False
+        rechunked = False
+        _, r, c = dask_array.shape
+        nfeatures = r * c
 
-    if original_chunks > 100:
-        dask_array.rechunk(100, -1, -1)
-        rechunked = True
+        original_chunks = dask_array.chunks[0][0]
 
-    smallest_chunk = np.min(dask_array.chunks[0])
+        if original_chunks > 100:
+            dask_array.rechunk(100, -1, -1)
+            rechunked = True
 
-    if mask is not None:
-        missing_data = True
-        dask_array[mask] = 0
-        mask = mask.reshape(-1, nfeatures)
+        smallest_chunk = np.min(dask_array.chunks[0])
 
-    if clean_params['gaussfilter_time'] > 0 or np.any(np.array(clean_params['medfilter_time']) > 0):
-        dask_array = dask_array.map_overlap(
-            clean_frames, depth=(np.minimum(smallest_chunk, 20), 0, 0), boundary='reflect',
-            dtype='float32', **clean_params)
-    else:
-        dask_array = dask_array.map_blocks(clean_frames, dtype='float32', **clean_params)
-        # dask_array = clean_frames(dask_array, **clean_params)
+        if mask is not None:
+            missing_data = True
+            dask_array[mask] = 0
+            mask = mask.reshape(-1, nfeatures)
 
-    if use_fft:
-        print('Using FFT...')
-        dask_array = dask_array.map_blocks(
-            lambda x: np.fft.fftshift(np.abs(np.fft.fft2(x)), axes=(1, 2)),
-            dtype='float32')
+        if clean_params['gaussfilter_time'] > 0 or np.any(np.array(clean_params['medfilter_time']) > 0):
+            dask_array = dask_array.map_overlap(
+                clean_frames, depth=(np.minimum(smallest_chunk, 20), 0, 0), boundary='reflect',
+                dtype='float32', **clean_params)
+        else:
+            dask_array = dask_array.map_blocks(clean_frames, dtype='float32', **clean_params)
+            # dask_array = clean_frames(dask_array, **clean_params)
 
-    if rechunked:
-        dask_array.rechunk(original_chunks, -1, -1)
+        if use_fft:
+            print('Using FFT...')
+            dask_array = dask_array.map_blocks(
+                lambda x: np.fft.fftshift(np.abs(np.fft.fft2(x)), axes=(1, 2)),
+                dtype='float32')
 
-    # todo, abstract this into another function, add support for missing data
-    # (should be simple, just need a mask array, then repeat calculation to convergence)
+        if rechunked:
+            dask_array.rechunk(original_chunks, -1, -1)
 
-    dask_array = dask_array.reshape(-1, nfeatures).astype('float32')
+        # todo, abstract this into another function, add support for missing data
+        # (should be simple, just need a mask array, then repeat calculation to convergence)
+
+        dask_array = dask_array.reshape(-1, nfeatures).astype('float32')
+        
+
+
     nsamples, nfeatures = dask_array.shape
 
     if cluster_type == 'slurm':
@@ -208,29 +217,46 @@ def apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
         data = read_yaml(yml)
         uuid = data['uuid']
 
-        dset = h5py.File(h5, mode='r')['/frames']
-        frames = da.from_array(dset, chunks=(chunk_size, -1, -1)).astype('float32')
+        dset = h5py.File(h5, mode='r')
+        
+        #MICE 
+        if '/frames' in dset:
+            
+            dset = dset['/frames']
+            frames = da.from_array(dset, chunks=(chunk_size, -1, -1)).astype('float32')
 
-        if missing_data:
-            mask_dset = h5py.File(h5, mode='r')['/frames_mask']
-            mask = da.from_array(mask_dset, chunks=frames.chunks)
-            mask = da.logical_and(mask < mask_params['mask_threshold'],
-                                  frames > mask_params['mask_height_threshold'])
-            frames[mask] = 0
-            mask = mask.reshape(-1, frames.shape[1] * frames.shape[2])
+            if missing_data:
+                mask_dset = h5py.File(h5, mode='r')['/frames_mask']
+                mask = da.from_array(mask_dset, chunks=frames.chunks)
+                mask = da.logical_and(mask < mask_params['mask_threshold'],
+                                      frames > mask_params['mask_height_threshold'])
+                frames[mask] = 0
+                mask = mask.reshape(-1, frames.shape[1] * frames.shape[2])
 
-        if clean_params['gaussfilter_time'] > 0 or np.any(np.array(clean_params['medfilter_time']) > 0):
-            frames = frames.map_overlap(
-                clean_frames, depth=(20, 0, 0), boundary='reflect', dtype='float32', **clean_params)
-        else:
-            frames = frames.map_blocks(clean_frames, dtype='float32', **clean_params)
+            if clean_params['gaussfilter_time'] > 0 or np.any(np.array(clean_params['medfilter_time']) > 0):
+                frames = frames.map_overlap(
+                    clean_frames, depth=(20, 0, 0), boundary='reflect', dtype='float32', **clean_params)
+            else:
+                frames = frames.map_blocks(clean_frames, dtype='float32', **clean_params)
 
-        if use_fft:
-            frames = frames.map_blocks(
-                lambda x: np.fft.fftshift(np.abs(np.fft.fft2(x)), axes=(1, 2)),
-                dtype='float32')
+            if use_fft:
+                frames = frames.map_blocks(
+                    lambda x: np.fft.fftshift(np.abs(np.fft.fft2(x)), axes=(1, 2)),
+                    dtype='float32')
 
-        frames = frames.reshape(-1, frames.shape[1] * frames.shape[2])
+            frames = frames.reshape(-1, frames.shape[1] * frames.shape[2])
+        
+        #HUMAN
+        elif '/embedding' in dset:
+        
+            dset = dset['/embedding']
+            if dset.shape[0] > chunk_size:
+                frames = da.from_array(dset, chunks=chunk_size).astype('float32')
+            else:
+                frames = da.from_array(dset).astype('float32')
+        
+
+        #PCA projection
         scores = frames.dot(pca_components.T)
 
         if missing_data:
@@ -245,7 +271,6 @@ def apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
 
     # pin the batch size to the number of workers (assume each worker has enough RAM for one session)
     batch_size = len(client.scheduler_info()['workers'])
-
     with h5py.File('{}.h5'.format(save_file), 'w') as f_scores:
 
         batch_count = 0

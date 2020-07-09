@@ -13,6 +13,7 @@ import warnings
 import dask.array as da
 import tqdm
 import pathlib
+import pdb
 
 orig_init = click.core.Option.__init__
 
@@ -212,24 +213,41 @@ def train_pca(
                         scheduler='distributed',
                         cache_path=dask_cache_path)
 
-    dsets = [h5py.File(h5, mode='r')['/frames'] for h5 in h5s]
-    arrays = [da.from_array(dset, chunks=(chunk_size, -1, -1)) for dset in dsets]
-    stacked_array = da.concatenate(arrays, axis=0)
-    stacked_array[stacked_array < min_height] = 0
-    stacked_array[stacked_array > max_height] = 0
 
-    print('Processing {:d} total frames'.format(stacked_array.shape[0]))
+    dsets = [h5py.File(h5, mode='r') for h5 in h5s]
+    #DECISION WHETHER IS MICE DATA OR HUMAN FACES
+    if all(['/frames' in iSet for iSet in dsets]):
+        dsets = [h5py.File(h5, mode='r')['/frames'] for h5 in h5s]
+        arrays = [da.from_array(dset, chunks=(chunk_size, -1, -1)) for dset in dsets]
+        stacked_array = da.concatenate(arrays, axis=0)
+        stacked_array[stacked_array < min_height] = 0
+        stacked_array[stacked_array > max_height] = 0
 
-    if missing_data:
-        mask_dsets = [h5py.File(h5, mode='r')['/frames_mask'] for h5 in h5s]
-        mask_arrays = [da.from_array(dset, chunks=(chunk_size, -1, -1)) for dset in mask_dsets]
-        stacked_array_mask = da.concatenate(mask_arrays, axis=0).astype('float32')
-        stacked_array_mask = da.logical_and(stacked_array_mask < mask_threshold,
+        print('Processing {:d} total frames'.format(stacked_array.shape[0]))
+
+        if missing_data:
+            mask_dsets = [h5py.File(h5, mode='r')['/frames_mask'] for h5 in h5s]
+            mask_arrays = [da.from_array(dset, chunks=(chunk_size, -1, -1)) for dset in mask_dsets]
+            stacked_array_mask = da.concatenate(mask_arrays, axis=0).astype('float32')
+            stacked_array_mask = da.logical_and(stacked_array_mask < mask_threshold,
                                             stacked_array > mask_height_threshold)
-        print('Loaded mask...')
-        # stacked_array_mask = dask.compute(stacked_array_mask)
-    else:
+            print('Loaded mask...')
+            # stacked_array_mask = dask.compute(stacked_array_mask)
+        else:
+            stacked_array_mask = None
+
+    elif all(['/embedding' in iSet for iSet in dsets]):
+        dsets = [h5py.File(h5, mode='r')['/embedding'] for h5 in h5s]
+        data_len = [iSet.shape[0] for iSet in dsets]
+        if max(data_len) < chunk_size:
+            arrays = [da.from_array(dset) for dset in dsets]
+        else:
+            arrays = [da.from_array(dset, chunks=(chunk_size)) for dset in dsets]
+        
+        stacked_array = da.concatenate(arrays, axis=0)
         stacked_array_mask = None
+    else:
+        raise IOError('h5s do not have frames nor embedding fields')
 
     output_dict =\
         train_pca_dask(dask_array=stacked_array, mask=stacked_array_mask,
@@ -246,11 +264,13 @@ def train_pca(
         except:
             pass
 
+
+
     if visualize_results:
-        plt, _ = display_components(output_dict['components'], headless=True)
-        plt.savefig('{}_components.png'.format(save_file))
-        plt.savefig('{}_components.pdf'.format(save_file))
-        plt.close()
+        #plt, _ = display_components(output_dict['components'], headless=True)
+        #plt.savefig('{}_components.png'.format(save_file))
+        #plt.savefig('{}_components.pdf'.format(save_file))
+        #plt.close()
 
         plt = scree_plot(output_dict['explained_variance_ratio'], headless=True)
         plt.savefig('{}_scree.png'.format(save_file))
@@ -317,10 +337,6 @@ def apply_pca(
 
     params = locals()
     h5s, dicts, yamls = recursive_find_h5s(input_dir)
-
-    # automatically get the correct timestamp path
-    h5_timestamp_path = get_timestamp_path(h5s[0])
-    h5_metadata_path = get_metadata_path(h5s[0])
 
     if pca_file is None:
         pca_file = os.path.join(output_dir, 'pca.h5')
