@@ -2,15 +2,14 @@ import os
 import cv2
 import h5py
 import pytest
-import pathlib
 import numpy as np
 import scipy.signal
 import ruamel.yaml as yaml
 from unittest import TestCase
 from dask.distributed import Client, LocalCluster
 from moseq2_pca.util import gaussian_kernel1d, gauss_smooth, read_yaml, insert_nans, \
-    h5_to_dict, recursive_find_h5s, clean_frames, select_strel, \
-    get_timestamp_path, get_metadata_path, initialize_dask, get_rps, get_changepoints
+    recursive_find_h5s, clean_frames, select_strel, get_timestamp_path, \
+    get_metadata_path, initialize_dask, get_rps, get_changepoints
 
 
 class TestUtils(TestCase):
@@ -187,7 +186,7 @@ class TestUtils(TestCase):
         queue = 'debug'
         cluster_type = 'local'
         timeout = 10
-        cache_path = os.path.join(pathlib.Path.home(), 'moseq2_pca')
+        cache_path = os.path.expanduser('~/moseq2_pca')
 
         client, cluster, workers = initialize_dask(nworkers=nworkers, processes=processes, memory=memory,
                                                    cores=cores, wall_time=wall_time, queue=queue,

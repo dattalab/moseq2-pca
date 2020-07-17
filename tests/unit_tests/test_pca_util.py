@@ -6,7 +6,6 @@ import dask.array as da
 import ruamel.yaml as yaml
 from unittest import TestCase
 from dask.distributed import Client
-from tempfile import TemporaryDirectory
 from moseq2_pca.util import recursive_find_h5s
 from moseq2_pca.helpers.data import get_pca_yaml_data
 from moseq2_pca.pca.util import mask_data, train_pca_dask, apply_pca_dask, apply_pca_local, get_changepoints_dask
@@ -40,7 +39,7 @@ class TestPCAUtils(TestCase):
         assert (frames.any() > 0) == (init_frames.all() == 0)
         assert frames.all() == test_out.all()
 
-    def _test_train_pca_dask(self):
+    def test_train_pca_dask(self):
 
         input_dir = 'data/proc/'
         config_file = 'data/config.yaml'

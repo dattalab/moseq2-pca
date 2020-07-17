@@ -1,11 +1,9 @@
 import os
 import shutil
-from pathlib import Path
-from os.path import join, exists
 import ruamel.yaml as yaml
 from unittest import TestCase
+from os.path import join, exists
 from click.testing import CliRunner
-from tempfile import TemporaryDirectory, NamedTemporaryFile
 from moseq2_pca.cli import clip_scores, train_pca, apply_pca, compute_changepoints
 
 class TestCli(TestCase):
@@ -37,10 +35,9 @@ class TestCli(TestCase):
                               '-o', out_dir]
 
         # in case it asks for user input
-        with TemporaryDirectory() as tmp:
-            stdin = NamedTemporaryFile(prefix=tmp+'/', suffix=".txt")
-            with open(stdin.name, 'w') as f:
-                f.write('Y')
+        stdin = 'data/stdin.txt'
+        with open(stdin, 'w') as f:
+            f.write('Y')
 
         runner = CliRunner()
 
@@ -50,13 +47,14 @@ class TestCli(TestCase):
 
         assert (result.exit_code == 0), "CLI Command did not successfully complete"
         assert exists(out_dir), "pca directory was not successfully created"
-        outfiles = [str(f.name) for f in Path(out_dir).iterdir()]
+        outfiles = [f for f in os.listdir(out_dir)]
 
         assert ('pca.h5' in outfiles and 'pca.yaml' in outfiles and \
                 'pca_components.pdf' in outfiles and 'pca_scree.pdf' in outfiles), \
             'PCA files were not computed successfully'
 
         shutil.rmtree(out_dir)
+        os.remove(stdin)
 
     def test_apply_pca(self):
         data_dir = 'data'
