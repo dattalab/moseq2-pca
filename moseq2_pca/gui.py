@@ -35,7 +35,7 @@ def train_pca_command(input_dir, config_file, output_dir, output_file):
     with open(config_file, 'w') as f:
         yaml.safe_dump(config_data, f)
 
-    config_data = train_pca_wrapper(input_dir, config_data, output_dir, output_file, gui=True)
+    config_data = train_pca_wrapper(input_dir, config_data, output_dir, output_file)
 
     with open(config_file, 'w') as f:
         yaml.safe_dump(config_data, f)
@@ -70,7 +70,7 @@ def apply_pca_command(input_dir, index_file, config_file, output_dir, output_fil
     # merge default params with those in config
     config_data = {**default_params, **config_data}
 
-    config_data = apply_pca_wrapper(input_dir, config_data, output_dir, output_file, gui=True)
+    config_data = apply_pca_wrapper(input_dir, config_data, output_dir, output_file)
 
     with open(config_file, 'w') as f:
         yaml.safe_dump(config_data, f)
@@ -116,7 +116,7 @@ def compute_changepoints_command(input_dir, config_file, output_dir, output_file
     # merge default params with those in config
     config_data = {**default_params, **config_data}
 
-    config_data = compute_changepoints_wrapper(input_dir, config_data, output_dir, output_file, gui=True)
+    config_data = compute_changepoints_wrapper(input_dir, config_data, output_dir, output_file)
 
     with open(config_file, 'w') as f:
         yaml.safe_dump(config_data, f)

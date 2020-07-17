@@ -1,9 +1,9 @@
 import warnings
-import skimage.util
 import numpy as np
-import matplotlib.pyplot as plt
+import skimage.util
 import seaborn as sns
 from scipy.stats import mode
+import matplotlib.pyplot as plt
 
 
 def display_components(components, cmap='gray', headless=False):

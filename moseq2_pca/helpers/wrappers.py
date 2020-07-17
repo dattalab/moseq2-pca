@@ -2,7 +2,6 @@ import os
 import h5py
 import click
 import logging
-import pathlib
 import datetime
 import warnings
 import dask.array as da
@@ -13,7 +12,7 @@ from moseq2_pca.pca.util import apply_pca_dask, apply_pca_local, train_pca_dask,
 from moseq2_pca.util import recursive_find_h5s, select_strel, initialize_dask, set_dask_config, \
             h5_to_dict, get_timestamp_path, get_metadata_path
 
-def train_pca_wrapper(input_dir, config_data, output_dir, output_file, gui=False):
+def train_pca_wrapper(input_dir, config_data, output_dir, output_file):
     '''
     Wrapper function to train PCA.
 
@@ -50,7 +49,7 @@ def train_pca_wrapper(input_dir, config_data, output_dir, output_file, gui=False
     save_file = os.path.join(output_dir, output_file)
 
     if os.path.exists(f'{save_file}.h5'):
-        print(f'The file {save_file}.h5 already exists.\nWould you like to overwrite it? [y -> yes, else -> exit]\n')
+        click.echo(f'The file {save_file}.h5 already exists.\nWould you like to overwrite it? [y -> yes, else -> exit]\n')
         ow = input()
         if ow.lower() != 'y':
             return config_data
@@ -119,11 +118,10 @@ def train_pca_wrapper(input_dir, config_data, output_dir, output_file, gui=False
     except Exception as e:
         logging.error(e)
         logging.error(e.__traceback__)
-        print('Training interrupted. Closing Dask Client. You may find logs of the error here:')
-        print('---- ', os.path.join(output_dir, 'train.log'))
+        click.echo('Training interrupted. Closing Dask Client. You may find logs of the error here:')
+        click.echo('---- ', os.path.join(output_dir, 'train.log'))
         client.close(timeout=config_data['timeout'])
         cluster.close(timeout=config_data['timeout'])
-
 
     try:
         plt, _ = display_components(output_dict['components'], headless=True)
@@ -133,8 +131,8 @@ def train_pca_wrapper(input_dir, config_data, output_dir, output_file, gui=False
     except Exception as e:
         logging.error(e)
         logging.error(e.__traceback__)
-        print('could not plot components')
-        print('You may find error logs here:', os.path.join(output_dir, 'train.log'))
+        click.echo('could not plot components')
+        click.echo('You may find error logs here:', os.path.join(output_dir, 'train.log'))
     try:
         plt = scree_plot(output_dict['explained_variance_ratio'], headless=True)
         plt.savefig(f'{save_file}_scree.png')
@@ -143,8 +141,8 @@ def train_pca_wrapper(input_dir, config_data, output_dir, output_file, gui=False
     except Exception as e:
         logging.error(e)
         logging.error(e.__traceback__)
-        print('could not plot scree')
-        print('You may find error logs here:', os.path.join(output_dir, 'train.log'))
+        click.echo('could not plot scree')
+        click.echo('You may find error logs here:', os.path.join(output_dir, 'train.log'))
 
     with h5py.File(f'{save_file}.h5', 'w') as f:
         for k, v in output_dict.items():
@@ -157,12 +155,12 @@ def train_pca_wrapper(input_dir, config_data, output_dir, output_file, gui=False
             client.close(timeout=config_data['timeout'])
             cluster.close(timeout=config_data['timeout'])
         except:
-            print('Could not restart dask client')
+            click.echo('Could not restart dask client')
             pass
 
     return config_data
 
-def apply_pca_wrapper(input_dir, config_data, output_dir, output_file, gui=False):
+def apply_pca_wrapper(input_dir, config_data, output_dir, output_file):
     '''
     Wrapper function to obtain PCA Scores.
 
@@ -187,18 +185,13 @@ def apply_pca_wrapper(input_dir, config_data, output_dir, output_file, gui=False
     h5s, dicts, yamls = recursive_find_h5s(input_dir)
 
     output_dir = os.path.abspath(output_dir)
-    # if 'aggregate_results' in input_dir:
-    #     outpath = '/'.join(input_dir.split('/')[:-2])
-    #     output_dir = os.path.join(outpath, output_dir)  # outputting pca folder in inputted base directory.
-    # else:
-    #     output_dir = os.path.join(input_dir, output_dir)  # outputting pca folder in inputted base directory.
 
     # automatically get the correct timestamp path
     try:
         h5_timestamp_path = get_timestamp_path(h5s[0])
         h5_metadata_path = get_metadata_path(h5s[0])
     except:
-        print('Autoload timestamps failed, will perform search.')
+        click.echo('Autoload timestamps failed, will perform search.')
 
     if config_data['pca_file'] is None:
         pca_file = os.path.join(output_dir, 'pca.h5')
@@ -264,7 +257,7 @@ def apply_pca_wrapper(input_dir, config_data, output_dir, output_file, gui=False
                                mask_params=mask_params, h5_path=config_data['h5_path'],
                                h5_mask_path=config_data['h5_mask_path'])
             except:
-                print('Operation interrupted. Closing Dask Client.')
+                click.echo('Operation interrupted. Closing Dask Client.')
                 client.close(timeout=config_data['timeout'])
                 cluster.close(timeout=config_data['timeout'])
 
@@ -273,14 +266,14 @@ def apply_pca_wrapper(input_dir, config_data, output_dir, output_file, gui=False
                     client.close(timeout=config_data['timeout'])
                     cluster.close(timeout=config_data['timeout'])
                 except:
-                    print('Could not restart dask client')
+                    click.echo('Could not restart dask client')
                     pass
 
-    if gui:
-        config_data['pca_file_scores'] = save_file + '.h5'
-        return config_data
 
-def compute_changepoints_wrapper(input_dir, config_data, output_dir, output_file, gui=False):
+    config_data['pca_file_scores'] = save_file + '.h5'
+    return config_data
+
+def compute_changepoints_wrapper(input_dir, config_data, output_dir, output_file):
     '''
     Wrapper function to compute model-free (PCA based) Changepoints.
 
@@ -332,7 +325,7 @@ def compute_changepoints_wrapper(input_dir, config_data, output_dir, output_file
                               mask_params=mask_params, h5_path=config_data['h5_path'],
                               h5_mask_path=config_data['h5_mask_path'])
     except:
-        print('Operation interrupted. Closing Dask Client.')
+        click.echo('Operation interrupted. Closing Dask Client.')
         client.close(timeout=config_data['timeout'])
 
     if client is not None:
@@ -354,5 +347,5 @@ def compute_changepoints_wrapper(input_dir, config_data, output_dir, output_file
         fig.savefig(f'{save_file}_dist.pdf')
         fig.close('all')
 
-    if gui:
-        return config_data
+
+    return config_data

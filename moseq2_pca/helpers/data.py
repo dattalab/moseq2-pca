@@ -1,8 +1,8 @@
 import os
 import h5py
-import pathlib
+import click
 import ruamel.yaml as yaml
-from moseq2_pca.util import recursive_find_h5s, select_strel, initialize_dask, get_timestamp_path
+from moseq2_pca.util import recursive_find_h5s, select_strel, get_timestamp_path
 
 def setup_cp_command(input_dir, config_data, output_dir, output_file):
     '''
@@ -33,6 +33,7 @@ def setup_cp_command(input_dir, config_data, output_dir, output_file):
     try:
         h5_timestamp_path = get_timestamp_path(h5s[0])
     except:
+        click.echo('Error! Timestamp path is not found. This will cause issues if imputing missing data/frames')
         pass
 
     output_dir = os.path.abspath(output_dir)
@@ -104,7 +105,6 @@ def load_pcs_for_cp(pca_file_components, config_data):
                 }
             else:
                 missing_data = False
-                pca_file_scores = None
                 mask_params = None
 
             if missing_data and not os.path.exists(config_data['pca_file_scores']):
