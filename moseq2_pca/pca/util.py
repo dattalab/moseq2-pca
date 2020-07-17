@@ -518,7 +518,7 @@ def get_changepoints_dask(changepoint_params, pca_components, h5s, yamls,
         uuids.append(uuid)
 
     # pin the batch size to the number of workers (assume each worker has enough RAM for one session)
-    batch_size = 1
+    batch_size = len(client.scheduler_info()['workers'])
 
     with h5py.File('{}.h5'.format(save_file), 'w') as f_cps:
 
