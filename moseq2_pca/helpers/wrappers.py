@@ -112,7 +112,7 @@ def train_pca_wrapper(input_dir, config_data, output_dir, output_file):
                            rank=config_data['rank'], cluster_type=config_data['cluster_type'],
                            min_height=config_data['min_height'],
                            max_height=config_data['max_height'], client=client,
-                           iters=config_data['missing_data_iters'], workers=workers,
+                           iters=config_data['missing_data_iters'],
                            recon_pcs=config_data['recon_pcs'])
     except Exception as e:
         logging.error(e)
@@ -344,6 +344,5 @@ def compute_changepoints_wrapper(input_dir, config_data, output_dir, output_file
         fig.savefig(f'{save_file}_dist.png')
         fig.savefig(f'{save_file}_dist.pdf')
         fig.close('all')
-
 
     return config_data

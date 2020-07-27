@@ -74,7 +74,7 @@ class TestPCAUtils(TestCase):
                            rank=config_data['rank'], cluster_type=config_data['cluster_type'],
                            min_height=config_data['min_height'],
                            max_height=config_data['max_height'], client=client,
-                           iters=config_data['missing_data_iters'], workers=None,
+                           iters=config_data['missing_data_iters'],
                            recon_pcs=config_data['recon_pcs'])
         client.restart()
         client.close()
@@ -118,10 +118,6 @@ class TestPCAUtils(TestCase):
         input_dir = 'data/proc/'
         pca_path = 'data/_pca/pca'
         save_file = 'data/_pca/dask_test_pca_scores'
-        config_file = 'data/config.yaml'
-
-        with open(config_file, 'r') as f:
-            config_data = yaml.safe_load(f)
 
         with h5py.File(f'{pca_path}.h5', 'r') as f:
             pca_components = f['components'][()]

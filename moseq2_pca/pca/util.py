@@ -154,9 +154,8 @@ def copy_metadatas_to_scores(f, f_scores, uuid):
         f.copy('/metadata/extraction', f_scores, name=metadata_name)
 
 def train_pca_dask(dask_array, clean_params, use_fft, rank,
-                   cluster_type, client, workers,
-                   mask=None, iters=10, recon_pcs=10,
-                   min_height=10, max_height=100):
+                   cluster_type, client, mask=None, iters=10,
+                   recon_pcs=10, min_height=10, max_height=100):
     '''
     Train PCA using dask arrays.
 
