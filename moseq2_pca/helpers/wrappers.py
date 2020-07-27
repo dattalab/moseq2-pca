@@ -9,8 +9,7 @@ import ruamel.yaml as yaml
 from moseq2_pca.viz import display_components, scree_plot, changepoint_dist
 from moseq2_pca.helpers.data import setup_cp_command, get_pca_yaml_data, load_pcs_for_cp
 from moseq2_pca.pca.util import apply_pca_dask, apply_pca_local, train_pca_dask, get_changepoints_dask
-from moseq2_pca.util import recursive_find_h5s, select_strel, initialize_dask, set_dask_config, \
-            h5_to_dict, get_timestamp_path, get_metadata_path
+from moseq2_pca.util import recursive_find_h5s, select_strel, initialize_dask, set_dask_config, h5_to_dict, get_timestamps
 
 def train_pca_wrapper(input_dir, config_data, output_dir, output_file):
     '''
@@ -34,6 +33,7 @@ def train_pca_wrapper(input_dir, config_data, output_dir, output_file):
         raise NotImplementedError("FFT and missing data not implemented yet")
 
     params = config_data
+
     # find directories with .dat files that either have incomplete or no extractions
     h5s, dicts, yamls = recursive_find_h5s(input_dir)
     timestamp = f'{datetime.datetime.now():%Y-%m-%d_%H-%M-%S}'
@@ -185,12 +185,7 @@ def apply_pca_wrapper(input_dir, config_data, output_dir, output_file):
 
     output_dir = os.path.abspath(output_dir)
 
-    # automatically get the correct timestamp path
-    try:
-        h5_timestamp_path = get_timestamp_path(h5s[0])
-        h5_metadata_path = get_metadata_path(h5s[0])
-    except:
-        click.echo('Autoload timestamps failed, will perform search.')
+    get_timestamps(h5s) # function to check whether timestamp files are found
 
     if config_data['pca_file'] is None:
         pca_file = os.path.join(output_dir, 'pca.h5')

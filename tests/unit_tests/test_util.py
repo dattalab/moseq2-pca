@@ -9,7 +9,7 @@ from unittest import TestCase
 from dask.distributed import Client, LocalCluster
 from moseq2_pca.util import gaussian_kernel1d, gauss_smooth, read_yaml, insert_nans, \
     recursive_find_h5s, clean_frames, select_strel, get_timestamp_path, \
-    get_metadata_path, initialize_dask, get_rps, get_changepoints
+    get_metadata_path, initialize_dask, get_rps, get_changepoints, get_timestamps
 
 
 class TestUtils(TestCase):
@@ -146,6 +146,12 @@ class TestUtils(TestCase):
 
         test_dict = read_yaml(yaml_file)
         assert test_dict == truth_dict
+
+    def test_get_timestamps(self):
+        h5file = ['data/proc/results_00.h5']
+        with pytest.warns(None) as record:
+            get_timestamps(h5file)
+        assert not record # no warnings emitted
 
     def test_get_timestamp_path(self):
         # original param: h5file path
