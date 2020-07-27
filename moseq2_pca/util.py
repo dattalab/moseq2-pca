@@ -381,12 +381,37 @@ def h5_to_dict(h5file, path):
 
 
 def set_dask_config(memory={'target': 0.85, 'spill': False, 'pause': False, 'terminate': 0.95}):
+    '''
+    Helper function to set the dask memory constraints.
+    Ensures there are no memory overflows.
+
+    Parameters
+    ----------
+    memory (dict): default dictionary containing memory usage parameters to initialize dask with.
+
+    Returns
+    -------
+    None
+    '''
+    
     memory = {f'distributed.worker.memory.{k}': v for k, v in memory.items()}
     dask.config.set(memory)
     dask.config.set({'optimization.fuse.ave-width': 5})
 
 
 def get_env_cpu_and_mem():
+    '''
+    Gets the amount of available memory and CPUs for dask to use.
+    Checks if command is launched in a slurm environment,
+    and returns the memory and number of CPUs available accordingly.
+
+    Returns
+    -------
+    mem (int): Amount of virtual memory (in bytes) available to dask.
+    cpu (int): Number of CPUs to initialize dask using.
+
+    '''
+
     is_slurm = os.environ.get('SLURM_JOBID', False)
 
     if is_slurm:
