@@ -180,9 +180,6 @@ def train_pca_dask(dask_array, clean_params, use_fft, rank,
     output_dict (dict): dictionary containing PCA training results.
     '''
 
-    logger = logging.getLogger("distributed.utils_perf")
-    logger.setLevel(logging.WARNING)
-
     missing_data = False
 
     smallest_chunk = np.min(dask_array.chunks[0])
@@ -358,9 +355,6 @@ def apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
     None
     '''
 
-    logger = logging.getLogger("distributed.utils_perf")
-    logger.setLevel(logging.WARNING)
-
     futures = []
     uuids = []
 
@@ -469,8 +463,6 @@ def get_changepoints_dask(changepoint_params, pca_components, h5s, yamls,
     futures = []
     uuids = []
     nrps = changepoint_params.pop('rps')
-    logger = logging.getLogger("distributed.utils_perf")
-    logger.setLevel(logging.WARNING)
 
     for h5, yml in tqdm(zip(h5s, yamls), disable=progress_bar, desc='Setting up calculation', total=len(h5s)):
         data = read_yaml(yml)

@@ -69,7 +69,6 @@ def train_pca_wrapper(input_dir, config_data, output_dir, output_file):
     }
 
     logging.basicConfig(filename=f'{output_dir}/train.log', level=logging.ERROR)
-    logger = logging.getLogger("distributed.utils_perf")
 
     dsets = [h5py.File(h5, mode='r')[config_data['h5_path']] for h5 in h5s]
     arrays = [da.from_array(dset, chunks=config_data['chunk_size']) for dset in dsets]
@@ -248,7 +247,7 @@ def apply_pca_wrapper(input_dir, config_data, output_dir, output_file):
                                 data_size=config_data.get('data_size', None))
 
             logging.basicConfig(filename=f'{output_dir}/scores.log', level=logging.ERROR)
-            logger = logging.getLogger("distributed.utils_perf")
+
             try:
                 apply_pca_dask(pca_components=pca_components, h5s=h5s, yamls=yamls,
                                use_fft=use_fft, clean_params=clean_params,
@@ -315,7 +314,6 @@ def compute_changepoints_wrapper(input_dir, config_data, output_dir, output_file
                         data_size=config_data.get('data_size', None))
 
     logging.basicConfig(filename=f'{output_dir}/changepoints.log', level=logging.ERROR)
-    logger = logging.getLogger("distributed.utils_perf")
 
     try:
         get_changepoints_dask(pca_components=pca_components, pca_scores=pca_file_scores,
