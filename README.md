@@ -15,14 +15,14 @@ They are accessible via CLI or Jupyter Notebook in [moseq2-app](https://github.c
 Usage: moseq2-pca [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  --help  Show this message and exit.  [default: False]
+  --help              Show this message and exit.  [default: False]
+  --version           Print version number
 
 Commands:
   apply-pca             Computes PCA Scores of extraction data given a...
   clip-scores           Clips speficied number of frames from PCA scores at...
   compute-changepoints  Computes the Model-Free Syllable Changepoints based...
   train-pca             Trains PCA on all extracted results (h5 files) in...
-  version               Print version number
 
 ```
 
@@ -30,8 +30,19 @@ Run any command with the `--help` flag to display all available options and thei
 
 ## Documentation
 
-All documentation regarding moseq2-pca can be found in the `Documentation.pdf` file in the root directory,
+MoSeq2 uses `sphinx` to generate the documentation in HTML and PDF forms. To install `sphinx`, follow the commands below:
+```.bash
+pip install sphinx==3.0.3
+pip install sphinx-rtd-theme
+pip install rst2pdf
+``` 
+
+All documentation regarding moseq2-extract can be found in the `Documentation.pdf` file in the root directory,
 an HTML ReadTheDocs page can be generated via running the `make html` in the `docs/` directory.
+
+To generate a PDF version of the documentation, simply run `make pdf` in the `docs/` directory.
+
+## Prerequisites
 
 In order to use this package you must have already extracted your data via [moseq2-extract](https://github.com/dattalab/moseq2-extract).
 If you aggregated your results into a single folder `aggregate_results/`, use that directory as your input directory 
