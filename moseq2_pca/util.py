@@ -1,3 +1,8 @@
+'''
+Utility and helper functions for traversing directories to find and read files, filtering operations,
+ Dask initialization, and changepoint helper functions.
+'''
+
 import os
 import cv2
 import h5py
@@ -149,6 +154,7 @@ def clean_frames(frames, medfilter_space=None, gaussfilter_space=None,
     '''
     Filters spatial/temporal noise from frames using Median and Gaussian filters,
     given kernel sizes for each respective requested filter.
+    Additionally affords computing a detrended version of the input frames given a number of lagged frames.
 
     Parameters
     ----------
@@ -635,6 +641,7 @@ def get_changepoints(scores, k=5, sigma=3, peak_height=.5, peak_neighbors=1, bas
     nanidx = np.isnan(normed_df)
     normed_df[nanidx] = 0
 
+    # Performing Gaussian smoothing on normalized scores
     if sigma is not None and sigma > 0:
         for i in range(scores.shape[0]):
             normed_df[i, :] = gauss_smooth(normed_df[i, :], sigma)
@@ -649,16 +656,20 @@ def get_changepoints(scores, k=5, sigma=3, peak_height=.5, peak_neighbors=1, bas
         warnings.simplefilter("ignore", category=RuntimeWarning)
         normed_df = np.nanmean(normed_df, axis=0)
 
+        # Removing inital lagged frames
         if baseline:
             normed_df -= np.nanmin(normed_df)
 
+        # Cleaning data
         if timestamps is not None:
             normed_df, _, _ = insert_nans(
                 timestamps, normed_df, fps=np.round(1 / np.mean(np.diff(timestamps))).astype('int'))
 
+        # Calculating relative extrema: changepoints
         normed_df = np.squeeze(normed_df)
-        cps = scipy.signal.argrelextrema(
-            normed_df, np.greater, order=peak_neighbors)[0]
+        cps = scipy.signal.argrelextrema(normed_df, np.greater, order=peak_neighbors)[0]
+
+        # Filter out extrema that are under the changepoint threshold (peak_height)
         cps = cps[np.argwhere(normed_df[cps] > peak_height)]
 
     return cps, normed_df

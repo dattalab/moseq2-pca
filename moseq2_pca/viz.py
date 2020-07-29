@@ -1,3 +1,7 @@
+'''
+Visualization operations for plotting computed PCs, a Scree Plot, and the Changepoint PDF histogram.
+'''
+
 import warnings
 import numpy as np
 import skimage.util
@@ -14,7 +18,7 @@ def display_components(components, cmap='gray', headless=False):
     ----------
     components (2D np.ndarray): components to graph
     cmap (str): color map to use
-    headless (bool): trim first element in PC list
+    headless (bool): switch to interactive backend
 
     Returns
     -------
@@ -44,7 +48,7 @@ def scree_plot(explained_variance_ratio, headless=False):
     Parameters
     ----------
     explained_variance_ratio (1D np.array): explained variance ratio of each principal component
-    headless (bool): trim first element in PC list
+    headless (bool): switch to interactive backend
 
     Returns
     -------
@@ -83,7 +87,7 @@ def changepoint_dist(cps, headless=False):
     Parameters
     ----------
     cps (np.ndarray): changepoints to graph
-    headless (bool): trim first element in PC list
+    headless (bool): switch to interactive backend
 
     Returns
     -------
@@ -99,6 +103,7 @@ def changepoint_dist(cps, headless=False):
         fig, ax = plt.subplots(1, 1, figsize=(5, 5))
         sns.set_style('ticks')
 
+        # Plot histogram
         ax = sns.distplot(cps, kde_kws={'gridsize': 600}, bins=np.linspace(0, 10, 100))
         ax.set_xlim((0, 2))
         ax.set_xticks(np.linspace(0, 2, 11))

@@ -1,3 +1,11 @@
+'''
+GUI front-end operations. This module contains all the functionality and configurable parameters
+users can alter to most accurately process their data.
+
+Note: These functions perform jupyter notebook specific preprocessing, loads in corresponding parameters from the
+CLI functions, then call the corresponding wrapper function with the given input parameters.
+'''
+
 import warnings
 import ruamel.yaml as yaml
 from .cli import train_pca, apply_pca, compute_changepoints
@@ -57,9 +65,6 @@ def apply_pca_command(input_dir, index_file, config_file, output_dir, output_fil
     -------
     (str): success string.
     '''
-
-    # TODO: additional post-processing, intelligent mapping of metadata to group names, make sure
-    # moseq2-model processes these files correctly
 
     with open(config_file, 'r') as f:
         config_data = yaml.safe_load(f)
