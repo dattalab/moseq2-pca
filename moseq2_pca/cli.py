@@ -63,35 +63,36 @@ def clip_scores(pca_file, clip_samples, from_end):
                     f2['/scores_idx/{}'.format(key)] = f['/scores_idx/{}'.format(key)][clip_samples:]
 
 
-@cli.command(name='add-groups')
-@click.argument('index_file', type=click.Path(exists=True, resolve_path=True))
-@click.argument('pca_file', type=click.Path(exists=True, resolve_path=True))
-def add_groups(index_file, pca_file):
-    """
-    Add group from an index file to a PCA scores file to use for modeling.
-
-    Args:
-        index_file (string): path to moseq2 index
-        pca_file (string): path to pca scores
-    """
-
-    with open(index_file, 'r') as f:
-        index = yaml.load(f.read(), Loader=yaml.RoundTripLoader)
-
-    if 'groups' in index:
-        print('Adding groups to pca file {}'.format(pca_file))
-        with h5py.File(pca_file, 'a') as f:
-            for k, v in index['groups'].items():
-
-                print('Adding {}:{}'.format(k, v))
-                new_key = 'groups/{}'.format(k)
-
-                if new_key in f:
-                    del f[new_key]
-
-                f[new_key] = v
-    else:
-        raise IOError('Could not find key groups in index file {}'.format(index_file))
+# DEPRECATED IN FAVOR OF USING THE YAML FILE FOR GROUP DEFINITIONS
+# @cli.command(name='add-groups')
+# @click.argument('index_file', type=click.Path(exists=True, resolve_path=True))
+# @click.argument('pca_file', type=click.Path(exists=True, resolve_path=True))
+# def add_groups(index_file, pca_file):
+#     """
+#     Add group from an index file to a PCA scores file to use for modeling.
+#
+#     Args:
+#         index_file (string): path to moseq2 index
+#         pca_file (string): path to pca scores
+#     """
+#
+#     with open(index_file, 'r') as f:
+#         index = yaml.load(f.read(), Loader=yaml.RoundTripLoader)
+#
+#     if 'groups' in index:
+#         print('Adding groups to pca file {}'.format(pca_file))
+#         with h5py.File(pca_file, 'a') as f:
+#             for k, v in index['groups'].items():
+#
+#                 print('Adding {}:{}'.format(k, v))
+#                 new_key = 'groups/{}'.format(k)
+#
+#                 if new_key in f:
+#                     del f[new_key]
+#
+#                 f[new_key] = v
+#     else:
+#         raise IOError('Could not find key groups in index file {}'.format(index_file))
 
 
 @cli.command(name='train-pca', cls=command_with_config('config_file'))
@@ -448,7 +449,7 @@ def apply_pca(
 @click.option('--h5-mask-path', default='/frames_mask', type=str, help="Path to log-likelihood mask in h5 files")
 @click.option('--chunk-size', default=4000, type=int, help='Number of frames per chunk')
 @click.option('--config-file', type=click.Path(), help="Path to configuration file")
-@click.option('--dask-cache-path', '-d', default=os.path.join(pathlib.Path.home(), 'moseq2_pca'), type=click.Path(), help='Path to spill data to disk for dask local scheduler')
+@click.option('--dask-cache-path', default=os.path.join(pathlib.Path.home(), 'moseq2_pca'), type=click.Path(), help='Path to spill data to disk for dask local scheduler')
 @click.option('--visualize-results', default=True, type=bool, help='Visualize results')
 @click.option('-q', '--queue', type=str, default='debug', help="Cluster queue/partition for submitting jobs")
 @click.option('-n', '--nworkers', type=int, default=10, help="Number of workers")

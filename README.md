@@ -2,6 +2,10 @@
 
 This is a library for computing PCA components and scores from extracted mouse movies.  Use this to compute features for modeling.
 
+## Documentation
+
+All documentation regarding moseq2-pca can be found in our [github wiki](https://github.com/dattalab/moseq2-pca/wiki).
+
 ## Contributing
 
 If you would like to contribute, fork the repository and issue a pull request.
