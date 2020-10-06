@@ -8,6 +8,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential\
  && apt-get install -y sshfs\
  && apt-get install -y git
 
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y libgl1-mesa-glx
 
 RUN conda create -n "moseq2" python=3.6 -y
 RUN echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
