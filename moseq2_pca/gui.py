@@ -65,6 +65,7 @@ def apply_pca_command(progress_paths, output_file):
     -------
     (str): success string.
     '''
+
     # Get default CLI params
     default_params = {tmp.name: tmp.default for tmp in apply_pca.params if not tmp.required}
 
@@ -80,12 +81,16 @@ def apply_pca_command(progress_paths, output_file):
 
     config_data = apply_pca_wrapper(input_dir, config_data, output_dir, output_file)
 
-    with open(config_file, 'w') as f:
-        yaml.safe_dump(config_data, f)
+    success_str = ''
 
     index_params = read_yaml(index_file)
     if index_params:
-        index_params['pca_path'] = config_data['pca_file_scores']
+        if config_data.get('overwrite_pca_apply', False):
+            index_params['pca_path'] = config_data['pca_file_scores']
+            success_str = 'PCA Scores have been successfully computed.'
+        else:
+            config_data.pop('overwrite_pca_apply', None)
+            success_str = 'Preexisting PCA Scores have not been updated.'
 
         with open(index_file, 'w') as f:
             yaml.safe_dump(index_params, f)
@@ -93,7 +98,10 @@ def apply_pca_command(progress_paths, output_file):
     else:
         print('moseq2-index not found, did not update paths')
 
-    return 'PCA Scores have been successfully computed.'
+    with open(config_file, 'w') as f:
+        yaml.safe_dump(config_data, f)
+
+    return success_str
 
 
 def compute_changepoints_command(input_dir, progress_paths, output_file):

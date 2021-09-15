@@ -228,6 +228,7 @@ def apply_pca_wrapper(input_dir, config_data, output_dir, output_file):
                 f'The file {save_file}.h5 already exists.\nWould you like to overwrite it? [y -> yes, n -> no]\n')
             ow = input()
             if ow.lower() != 'y':
+                config_data['overwrite_pca_apply'] = False
                 return config_data
 
     # Get path to trained PCA file to load PCs from
