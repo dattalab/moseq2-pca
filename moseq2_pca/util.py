@@ -531,11 +531,18 @@ def initialize_dask(nworkers=50, processes=1, memory='4GB', cores=1,
 
         max_mem, max_cpu = get_env_cpu_and_mem()
         overhead = 0.8e9  # memory overhead for each worker; approximate
-        
+
         # allocating 0.4 of the maximum memory to account for overhead per worker
-        allowed = max_mem * 0.4 
+        if max_mem // 1e9 == 1:
+            allowed = max_mem
+        elif max_mem // 1e9 > 1:
+            allowed = max_mem * 0.4
+        else:
+            ValueError('Less than one GB of memory available')
+
         max_workers = allowed // overhead
 
+        assert max_workers > 0, "Max workers is not greater than 0"
         # set number of workers to maximum workers, or total number of CPUs
         if nworkers > max_workers:
             click.echo(f'Reducing number of workers to {min(max_workers, max_cpu)} to account for worker base memory and the number of CPUs')

@@ -1,0 +1,32 @@
+chunk_size: 4000
+cluster_type: local
+config_file: config_tst.yaml
+cores: 1
+dask_cache_path: /Users/jacklovell/Desktop/work/dattalab/moseq2-pca/_pca
+dask_port: '8787'
+gaussfilter_space: [1.5, 1.0]
+gaussfilter_time: 0.0
+h5_mask_path: /frames_mask
+h5_path: /frames
+input_dir: aggregate_results/
+local_processes: false
+mask_height_threshold: 5.0
+mask_threshold: -16.0
+max_height: 120
+medfilter_space: [0]
+medfilter_time: [0]
+memory: 15GB
+min_height: 10
+missing_data_iters: 10
+nworkers: 1
+output_dir: _pca_tst/
+output_file: pca
+overwrite_pca_train: false
+processes: 1
+queue: debug
+rank: 25
+recon_pcs: 10
+tailfilter_shape: ellipse
+tailfilter_size: [9, 9]
+timeout: 5.0
+wall_time: 06:00:00
