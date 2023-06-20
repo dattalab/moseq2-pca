@@ -398,10 +398,16 @@ def batch_apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
                                                 fps=np.round(1 / np.mean(np.diff(timestamps))).astype('int'))
 
                 # Write scores
-                h5f.create_dataset(f'scores/{uuids[file_idx]}', data=scores,
-                                    dtype='float32', compression='gzip')
-                h5f.create_dataset(f'scores_idx/{uuids[file_idx]}', data=score_idx,
-                                    dtype='float32', compression='gzip')
+                scores_key = f'scores/{uuids[file_idx]}'
+                if uuids[file_idx] in h5f['scores']:
+                    del h5f[scores_key]
+                h5f.create_dataset(scores_key, data=scores,
+                                   dtype='float32', compression='gzip')
+                scores_idx_key = f'scores_idx/{uuids[file_idx]}'
+                if uuids[file_idx] in h5f['scores_idx']:
+                    del h5f[scores_idx_key]
+                h5f.create_dataset(scores_idx_key, data=score_idx,
+                                   dtype='float32', compression='gzip')
         for h5 in h5_file_pointers:
             h5.close()
 
