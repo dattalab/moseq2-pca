@@ -335,7 +335,7 @@ def apply_pca_local(pca_components, h5s, yamls, use_fft, clean_params,
 def batch_apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
                          save_file, chunk_size, mask_params, missing_data, client, batch_size=10,
                          fps=30, h5_path='/frames', h5_mask_path='/frames_mask', verbose=False):
-    for batch in tqdm(partition_all(batch_size, zip(h5s, yamls))):
+    for batch in tqdm(list(partition_all(batch_size, zip(h5s, yamls)))):
         futures = []
         uuids = []
         h5_file_pointers = []
