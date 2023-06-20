@@ -10,6 +10,7 @@ import numpy as np
 import dask.array as da
 from tqdm.auto import tqdm
 import dask.array.linalg as lng
+from toolz import partition_all
 from dask.distributed import as_completed, progress
 from moseq2_pca.util import (clean_frames, insert_nans, read_yaml, get_changepoints, get_rps)
 
@@ -329,6 +330,80 @@ def apply_pca_local(pca_components, h5s, yamls, use_fft, clean_params,
                                     dtype='float32', compression='gzip')
             f_scores.create_dataset(f'scores_idx/{uuid}', data=score_idx,
                                     dtype='float32', compression='gzip')
+
+
+def batch_apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
+                         save_file, chunk_size, mask_params, missing_data, client, batch_size=10,
+                         fps=30, h5_path='/frames', h5_mask_path='/frames_mask', verbose=False):
+    for batch in tqdm(partition_all(batch_size, zip(h5s, yamls))):
+        futures = []
+        uuids = []
+        h5_file_pointers = []
+
+        for h5, yml in batch:
+            data = read_yaml(yml)
+            uuid = data['uuid']
+            h5p = h5py.File(h5, mode='r')
+
+            frames = da.from_array(h5p[h5_path], chunks=chunk_size).astype('float32')
+
+            if missing_data:
+                mask = da.from_array(h5p[h5_mask_path], chunks=frames.chunks)
+                mask = da.logical_and(mask < mask_params['mask_threshold'],
+                                      frames > mask_params['mask_height_threshold'])
+                frames[mask] = 0
+                mask = mask.reshape(-1, frames.shape[1] * frames.shape[2])
+
+            # Apply filters
+            if clean_params['gaussfilter_time'] > 0 or np.any(np.array(clean_params['medfilter_time']) > 0):
+                frames = frames.map_overlap(
+                    clean_frames, depth=(20, 0, 0), boundary='reflect', dtype='float32', **clean_params)
+            else:
+                frames = frames.map_blocks(clean_frames, dtype='float32', **clean_params)
+
+            if use_fft:
+                frames = frames.map_blocks(
+                    lambda x: np.fft.fftshift(np.abs(np.fft.fft2(x)), axes=(1, 2)),
+                    dtype='float32')
+
+            # Reshape data to 2D and compute scores
+            frames = frames.reshape(-1, frames.shape[1] * frames.shape[2])
+            scores = frames.dot(pca_components.T)
+
+            if missing_data:
+                # Reconstruct missing scores data
+                recon = scores.dot(pca_components)
+                recon[recon < mask_params['min_height']] = 0
+                recon[recon > mask_params['max_height']] = 0
+                frames = da.map_blocks(mask_data, frames, mask, recon, dtype=frames.dtype)
+                # Compute reconstructed scores
+                scores = frames.dot(pca_components.T)
+
+            futures.append(scores)
+            uuids.append(uuid)
+            h5_file_pointers.append(h5p)
+
+        with h5py.File(f'{save_file}.h5', 'a') as h5f:
+            futures = client.compute(futures)
+            keys = [tmp.key for tmp in futures]
+
+            for future, result in as_completed(futures, with_results=True):
+                file_idx = keys.index(future.key)
+
+                timestamps = get_timestamps(h5_file_pointers[file_idx], result, fps)
+                copy_metadatas_to_scores(h5_file_pointers[file_idx], h5f, uuids[file_idx])
+
+                # Insert NaNs in missing frames in scores array
+                scores, score_idx, _ = insert_nans(data=result, timestamps=timestamps,
+                                                fps=np.round(1 / np.mean(np.diff(timestamps))).astype('int'))
+
+                # Write scores
+                h5f.create_dataset(f'scores/{uuids[file_idx]}', data=scores,
+                                    dtype='float32', compression='gzip')
+                h5f.create_dataset(f'scores_idx/{uuids[file_idx]}', data=score_idx,
+                                    dtype='float32', compression='gzip')
+        for h5 in h5_file_pointers:
+            h5.close()
 
 
 def apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,

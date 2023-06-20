@@ -129,6 +129,7 @@ def train_pca(input_dir, output_dir, output_file, **cli_args):
 @click.option('--detrend-window', default=0, type=float, help="Length of detrend window (in seconds, 0 for no detrending)")
 @click.option('--verbose', '-v', is_flag=True, help='Print sessions as they are being loaded.')
 @click.option('--overwrite-pca-apply', default=False, type=bool, help='Used to bypass the pca overwrite question. If True: skip question, run automatically')
+@click.option('--batch-apply', is_flag=True, help='Used to apply pca in batches when memory is limited')
 def apply_pca(input_dir, output_dir, output_file, **cli_args):
     # function writes output pc score path to config_data
     config_data, _ = apply_pca_wrapper(input_dir, cli_args, output_dir, output_file)
