@@ -6,11 +6,13 @@ import dask
 import h5py
 import click
 import warnings
+import traceback
 import numpy as np
 import dask.array as da
-from tqdm.auto import tqdm
 import dask.array.linalg as lng
-from toolz import partition_all
+from os.path import exists
+from tqdm.auto import tqdm
+from toolz import partition_all, partial, valmap
 from dask.distributed import as_completed, progress
 from moseq2_pca.util import (clean_frames, insert_nans, read_yaml, get_changepoints, get_rps)
 
@@ -133,15 +135,17 @@ def copy_metadatas_to_scores(f, f_scores, uuid):
     f_scores (read-open h5py File): open "pca_scores.h5" h5py.File object in read-mode
     uuid (str): uuid of inputted session h5 "f".
     """
-
-    if '/metadata/acquisition' in f:
-        # h5 format post v0.1.3
-        metadata_name = f'metadata/{uuid}'
-        f.copy('/metadata/acquisition', f_scores, name=metadata_name)
-    elif '/metadata/extraction' in f:
-        # h5 format pre v0.1.3
-        metadata_name = f'metadata/{uuid}'
-        f.copy('/metadata/extraction', f_scores, name=metadata_name)
+    try:
+        if '/metadata/acquisition' in f:
+            # h5 format post v0.1.3
+            metadata_name = f'metadata/{uuid}'
+            f.copy('/metadata/acquisition', f_scores, name=metadata_name)
+        elif '/metadata/extraction' in f:
+            # h5 format pre v0.1.3
+            metadata_name = f'metadata/{uuid}'
+            f.copy('/metadata/extraction', f_scores, name=metadata_name)
+    except Exception:
+        pass
 
 def train_pca_dask(dask_array, clean_params, use_fft, rank, cluster_type, client,
                    mask=None, iters=10, recon_pcs=10, min_height=10, max_height=100):
@@ -277,138 +281,166 @@ def apply_pca_local(pca_components, h5s, yamls, use_fft, clean_params,
     with h5py.File(f'{save_file}.h5', 'w') as f_scores:
         for h5, yml in tqdm(zip(h5s, yamls), total=len(h5s), desc='Computing scores'):
             # Load the file's metadata
-            data = read_yaml(yml)
-            uuid = data['uuid']
+            try:
+                data = read_yaml(yml)
+                uuid = data['uuid']
 
-            if verbose:
-                print('Loading', h5)
+                if verbose:
+                    print('Loading', h5)
 
-            with h5py.File(h5, 'r') as f:
-                # Load frames
-                frames = f[h5_path][()].astype('float32')
+                with h5py.File(h5, 'r') as f:
+                    # Load frames
+                    frames = f[h5_path][()].astype('float32')
 
-                if missing_data:
-                    # Load masked frames
-                    mask = f[h5_mask_path][()]
-                    mask = np.logical_and(mask < mask_params['mask_threshold'],
-                                          frames > mask_params['mask_height_threshold'])
-                    frames[mask] = 0
-                    mask = mask.reshape(-1, frames.shape[1] * frames.shape[2])
+                    if missing_data:
+                        # Load masked frames
+                        mask = f[h5_mask_path][()]
+                        mask = np.logical_and(mask < mask_params['mask_threshold'],
+                                              frames > mask_params['mask_height_threshold'])
+                        frames[mask] = 0
+                        mask = mask.reshape(-1, frames.shape[1] * frames.shape[2])
 
-                # Filter the data
-                frames = clean_frames(frames, **clean_params)
+                    # Filter the data
+                    frames = clean_frames(frames, **clean_params)
 
-                # Apply FFT
-                if use_fft:
-                    frames = np.fft.fftshift(np.abs(np.fft.fft2(frames)), axes=(1, 2))
+                    # Apply FFT
+                    if use_fft:
+                        frames = np.fft.fftshift(np.abs(np.fft.fft2(frames)), axes=(1, 2))
 
-                # Reshape the data to 2D matrix
-                frames = frames.reshape(-1, frames.shape[1] * frames.shape[2])
+                    # Reshape the data to 2D matrix
+                    frames = frames.reshape(-1, frames.shape[1] * frames.shape[2])
 
-                timestamps = get_timestamps(f, frames, fps)
-                copy_metadatas_to_scores(f, f_scores, uuid)
+                    timestamps = get_timestamps(f, frames, fps)
+                    copy_metadatas_to_scores(f, f_scores, uuid)
 
-            # Compute scores
-            scores = frames.dot(pca_components.T)
-
-            # if we have missing data, simply fill in, repeat the score calculation,
-            # then move on
-            if missing_data:
-                # Compute reconstructed PCs
-                recon = scores.dot(pca_components)
-                recon[recon < mask_params['min_height']] = 0
-                recon[recon > mask_params['max_height']] = 0
-                frames[mask] = recon[mask]
+                # Compute scores
                 scores = frames.dot(pca_components.T)
 
-            # Insert NaNs into scores array
-            scores, score_idx, _ = insert_nans(data=scores, timestamps=timestamps,
-                                               fps=np.round(1 / np.mean(np.diff(timestamps))).astype('int'))
+                # if we have missing data, simply fill in, repeat the score calculation,
+                # then move on
+                if missing_data:
+                    # Compute reconstructed PCs
+                    recon = scores.dot(pca_components)
+                    recon[recon < mask_params['min_height']] = 0
+                    recon[recon > mask_params['max_height']] = 0
+                    frames[mask] = recon[mask]
+                    scores = frames.dot(pca_components.T)
 
-            # Write scores
-            f_scores.create_dataset(f'scores/{uuid}', data=scores,
-                                    dtype='float32', compression='gzip')
-            f_scores.create_dataset(f'scores_idx/{uuid}', data=score_idx,
-                                    dtype='float32', compression='gzip')
+                # Insert NaNs into scores array
+                scores, score_idx, _ = insert_nans(data=scores, timestamps=timestamps,
+                                                   fps=np.round(1 / np.mean(np.diff(timestamps))).astype('int'))
+
+                # Write scores
+                f_scores.create_dataset(f'scores/{uuid}', data=scores,
+                                        dtype='float32', compression='gzip')
+                f_scores.create_dataset(f'scores_idx/{uuid}', data=score_idx,
+                                        dtype='float32', compression='gzip')
+            except Exception:
+                continue
+
+
+def safe_apply_pca(h5_data, mask_data, mask_params, clean_params, pca_components, missing_data, chunk_size):
+    frames = da.from_array(h5_data, chunks=chunk_size).astype('float32')
+
+    if missing_data:
+        mask = da.from_array(mask_data, chunks=chunk_size)
+        mask = da.logical_and(mask < mask_params['mask_threshold'],
+                              frames > mask_params['mask_height_threshold'])
+        frames[mask] = 0
+        mask = mask.reshape(-1, frames.shape[1] * frames.shape[2])
+
+    # Apply filters
+    if clean_params['gaussfilter_time'] > 0 or np.any(np.array(clean_params['medfilter_time']) > 0):
+        frames = frames.map_overlap(
+            clean_frames, depth=(20, 0, 0), boundary='reflect', dtype='float32', **clean_params)
+    else:
+        frames = frames.map_blocks(clean_frames, dtype='float32', **clean_params)
+
+    # Reshape data to 2D and compute scores
+    frames = frames.reshape(-1, frames.shape[1] * frames.shape[2])
+    scores = frames.dot(pca_components.T)
+
+    if missing_data:
+        # Reconstruct missing scores data
+        recon = scores.dot(pca_components)
+        recon[recon < mask_params['min_height']] = 0
+        recon[recon > mask_params['max_height']] = 0
+        frames = da.map_blocks(mask_data, frames, mask, recon, dtype=frames.dtype)
+        # Compute reconstructed scores
+        scores = frames.dot(pca_components.T)
+    return scores
+
+
+def new_file(h5p, scores_p):
+    if not exists(scores_p):
+        return True
+    with h5py.File(h5p, 'r') as h5f, h5py.File(scores_p, 'r') as scores_h5f:
+        if 'scores' in scores_h5f and h5f['metadata']['uuid'][()] in scores_h5f['scores']:
+            return False
+    return True
+
+
+def write_scores(h5_pointer, scores, indices, uuid):
+    scores_key = f'scores/{uuid}'
+    scores_idx_key = f'scores_idx/{uuid}'
+    if 'scores' in h5_pointer and uuid in h5_pointer['scores']:
+        print("found", uuid, "in pca file, replacing...")
+        del h5_pointer[scores_key]
+    if 'scores_idx' in h5_pointer and uuid in h5_pointer['scores_idx']:
+        del h5_pointer[scores_idx_key]
+
+    h5_pointer.create_dataset(scores_key, data=scores, dtype='float32')
+    h5_pointer.create_dataset(scores_idx_key, data=indices, dtype='float32')
 
 
 def batch_apply_pca_dask(pca_components, h5s, yamls, use_fft, clean_params,
                          save_file, chunk_size, mask_params, missing_data, client, batch_size=10,
                          fps=30, h5_path='/frames', h5_mask_path='/frames_mask', verbose=False):
-    for batch in tqdm(list(partition_all(batch_size, zip(h5s, yamls)))):
+    if use_fft:
+        raise NotImplementedError("FFT not implemented for batch_apply_pca_dask")
+    # only compute scores for new UUIDs
+    file_filter = partial(new_file, scores_p=f'{save_file}.h5')
+    for batch in tqdm(list(partition_all(batch_size, filter(lambda x: file_filter(x[0]), zip(h5s, yamls))))):
         futures = []
+        h5_file_pointers = {}
         uuids = []
-        h5_file_pointers = []
 
         for h5, yml in batch:
-            data = read_yaml(yml)
-            uuid = data['uuid']
-            h5p = h5py.File(h5, mode='r')
+            try:
+                data = read_yaml(yml)
+                uuid = data['uuid']
+                h5p = h5py.File(h5, mode='r')
+                scores = safe_apply_pca(h5p[h5_path], h5p[h5_mask_path], mask_params, clean_params, pca_components,
+                                        missing_data, chunk_size)
 
-            frames = da.from_array(h5p[h5_path], chunks=chunk_size).astype('float32')
+                futures.append(scores)
+                h5_file_pointers[uuid] = h5p
+                uuids.append(uuid)
+            except Exception as e:
+                print("Exception in loading h5 data:", h5)
+                print(e)
 
-            if missing_data:
-                mask = da.from_array(h5p[h5_mask_path], chunks=frames.chunks)
-                mask = da.logical_and(mask < mask_params['mask_threshold'],
-                                      frames > mask_params['mask_height_threshold'])
-                frames[mask] = 0
-                mask = mask.reshape(-1, frames.shape[1] * frames.shape[2])
-
-            # Apply filters
-            if clean_params['gaussfilter_time'] > 0 or np.any(np.array(clean_params['medfilter_time']) > 0):
-                frames = frames.map_overlap(
-                    clean_frames, depth=(20, 0, 0), boundary='reflect', dtype='float32', **clean_params)
-            else:
-                frames = frames.map_blocks(clean_frames, dtype='float32', **clean_params)
-
-            if use_fft:
-                frames = frames.map_blocks(
-                    lambda x: np.fft.fftshift(np.abs(np.fft.fft2(x)), axes=(1, 2)),
-                    dtype='float32')
-
-            # Reshape data to 2D and compute scores
-            frames = frames.reshape(-1, frames.shape[1] * frames.shape[2])
-            scores = frames.dot(pca_components.T)
-
-            if missing_data:
-                # Reconstruct missing scores data
-                recon = scores.dot(pca_components)
-                recon[recon < mask_params['min_height']] = 0
-                recon[recon > mask_params['max_height']] = 0
-                frames = da.map_blocks(mask_data, frames, mask, recon, dtype=frames.dtype)
-                # Compute reconstructed scores
-                scores = frames.dot(pca_components.T)
-
-            futures.append(scores)
-            uuids.append(uuid)
-            h5_file_pointers.append(h5p)
+        futures = client.compute(futures)
 
         with h5py.File(f'{save_file}.h5', 'a') as h5f:
-            futures = client.compute(futures)
-            keys = [tmp.key for tmp in futures]
+            for future in as_completed(futures):
+                try:
+                    uuid = uuids[futures.index(future)]
+                    result = np.asarray(future.result())
+                    timestamps = get_timestamps(h5_file_pointers[uuid], result, fps)
+                    copy_metadatas_to_scores(h5_file_pointers[uuid], h5f, uuid)
 
-            for future, result in as_completed(futures, with_results=True):
-                file_idx = keys.index(future.key)
-
-                timestamps = get_timestamps(h5_file_pointers[file_idx], result, fps)
-                copy_metadatas_to_scores(h5_file_pointers[file_idx], h5f, uuids[file_idx])
-
-                # Insert NaNs in missing frames in scores array
-                scores, score_idx, _ = insert_nans(data=result, timestamps=timestamps,
-                                                fps=np.round(1 / np.mean(np.diff(timestamps))).astype('int'))
-
-                # Write scores
-                scores_key = f'scores/{uuids[file_idx]}'
-                if uuids[file_idx] in h5f['scores']:
-                    del h5f[scores_key]
-                h5f.create_dataset(scores_key, data=scores,
-                                   dtype='float32', compression='gzip')
-                scores_idx_key = f'scores_idx/{uuids[file_idx]}'
-                if uuids[file_idx] in h5f['scores_idx']:
-                    del h5f[scores_idx_key]
-                h5f.create_dataset(scores_idx_key, data=score_idx,
-                                   dtype='float32', compression='gzip')
-        for h5 in h5_file_pointers:
+                    # Insert NaNs in missing frames in scores array
+                    scores, score_idx, _ = insert_nans(
+                        data=result, timestamps=timestamps,
+                        fps=np.round(1 / np.mean(np.diff(timestamps))).astype('int')
+                    )
+                    # Write scores
+                    write_scores(h5f, scores, score_idx, uuid)
+                except Exception as e:
+                    print("Exception in writing scores to h5 file")
+                    traceback.print_tb(e.__traceback__)
+        for h5 in h5_file_pointers.values():
             h5.close()
 
 

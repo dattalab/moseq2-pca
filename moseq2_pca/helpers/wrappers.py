@@ -8,6 +8,7 @@ import click
 import logging
 import datetime
 import warnings
+import traceback
 import numpy as np
 import dask.array as da
 import ruamel.yaml as yaml
@@ -287,7 +288,8 @@ def apply_pca_wrapper(input_dir, config_data, output_dir, output_file):
                                 fps=config_data['fps'], client=client, missing_data=missing_data,
                                 mask_params=mask_params, h5_path=config_data['h5_path'],
                                 h5_mask_path=config_data['h5_mask_path'], verbose=config_data['verbose'])
-            except:
+            except Exception as e:
+                traceback.print_tb(e.__traceback__)
                 # Clearing all data from Dask client in case of interrupted PCA
                 click.echo('Operation interrupted. Closing Dask Client.')
             finally:
