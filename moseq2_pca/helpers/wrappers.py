@@ -8,6 +8,7 @@ import click
 import logging
 import datetime
 import warnings
+import traceback
 import numpy as np
 import dask.array as da
 import ruamel.yaml as yaml
@@ -15,7 +16,7 @@ from tqdm.auto import tqdm
 from moseq2_pca.viz import plot_pca_results, changepoint_dist
 from os.path import abspath, join, exists, splitext, basename, dirname
 from moseq2_pca.helpers.data import get_pca_paths, get_pca_yaml_data, load_pcs_for_cp
-from moseq2_pca.pca.util import apply_pca_dask, apply_pca_local, train_pca_dask, get_changepoints_dask
+from moseq2_pca.pca.util import apply_pca_dask, apply_pca_local, train_pca_dask, get_changepoints_dask, batch_apply_pca_dask
 from moseq2_pca.util import recursive_find_h5s, select_strel, initialize_dask, set_dask_config, close_dask, \
             h5_to_dict, check_timestamps
 
@@ -273,13 +274,22 @@ def apply_pca_wrapper(input_dir, config_data, output_dir, output_file):
 
             # Compute PCA Scores
             try:
-                apply_pca_dask(pca_components=pca_components, h5s=h5s, yamls=yamls,
-                               use_fft=use_fft, clean_params=clean_params,
-                               save_file=save_file, chunk_size=config_data['chunk_size'],
-                               fps=config_data['fps'], client=client, missing_data=missing_data,
-                               mask_params=mask_params, h5_path=config_data['h5_path'],
-                               h5_mask_path=config_data['h5_mask_path'], verbose=config_data['verbose'])
-            except:
+                if config_data['batch_apply']:
+                    batch_apply_pca_dask(pca_components=pca_components, h5s=h5s, yamls=yamls,
+                                use_fft=use_fft, clean_params=clean_params,
+                                save_file=save_file, chunk_size=config_data['chunk_size'],
+                                fps=config_data['fps'], client=client, missing_data=missing_data,
+                                mask_params=mask_params, h5_path=config_data['h5_path'], batch_size=config_data['nworkers'],
+                                h5_mask_path=config_data['h5_mask_path'], verbose=config_data['verbose'])
+                else:
+                    apply_pca_dask(pca_components=pca_components, h5s=h5s, yamls=yamls,
+                                use_fft=use_fft, clean_params=clean_params,
+                                save_file=save_file, chunk_size=config_data['chunk_size'],
+                                fps=config_data['fps'], client=client, missing_data=missing_data,
+                                mask_params=mask_params, h5_path=config_data['h5_path'],
+                                h5_mask_path=config_data['h5_mask_path'], verbose=config_data['verbose'])
+            except Exception as e:
+                traceback.print_tb(e.__traceback__)
                 # Clearing all data from Dask client in case of interrupted PCA
                 click.echo('Operation interrupted. Closing Dask Client.')
             finally:
