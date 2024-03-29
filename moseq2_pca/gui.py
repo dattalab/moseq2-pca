@@ -8,7 +8,11 @@ import ruamel.yaml as yaml
 from os.path import exists, join
 from moseq2_pca.util import read_yaml
 from .cli import train_pca, apply_pca, compute_changepoints
-from moseq2_pca.helpers.wrappers import train_pca_wrapper, apply_pca_wrapper, compute_changepoints_wrapper
+from moseq2_pca.helpers.wrappers import (
+    train_pca_wrapper,
+    apply_pca_wrapper,
+    compute_changepoints_wrapper,
+)
 
 
 def train_pca_command(progress_paths, output_dir, output_file):
@@ -23,17 +27,19 @@ def train_pca_command(progress_paths, output_dir, output_file):
     Returns:
     """
     # Get default CLI params
-    default_params = {tmp.name: tmp.default for tmp in train_pca.params if not tmp.required}
+    default_params = {
+        tmp.name: tmp.default for tmp in train_pca.params if not tmp.required
+    }
 
     # Get appropriate inputs
-    input_dir = progress_paths['train_data_dir']
-    config_file = progress_paths['config_file']
+    input_dir = progress_paths["train_data_dir"]
+    config_file = progress_paths["config_file"]
 
     config_data = read_yaml(config_file)
     # merge default params with those in config
     config_data = {**default_params, **config_data}
 
-    with open(config_file, 'w') as f:
+    with open(config_file, "w") as f:
         yaml.safe_dump(config_data, f)
 
     with warnings.catch_warnings():
@@ -42,7 +48,7 @@ def train_pca_command(progress_paths, output_dir, output_file):
 
         config_data = train_pca_wrapper(input_dir, config_data, output_dir, output_file)
 
-    with open(config_file, 'w') as f:
+    with open(config_file, "w") as f:
         yaml.safe_dump(config_data, f)
 
 
@@ -58,13 +64,15 @@ def apply_pca_command(progress_paths, output_file):
     (str): success string.
     """
     # Get default CLI params
-    default_params = {tmp.name: tmp.default for tmp in apply_pca.params if not tmp.required}
+    default_params = {
+        tmp.name: tmp.default for tmp in apply_pca.params if not tmp.required
+    }
 
     # Get proper inputs
-    input_dir = progress_paths['train_data_dir']
-    config_file = progress_paths['config_file']
-    index_file = progress_paths['index_file']
-    output_dir = progress_paths['pca_dirname']
+    input_dir = progress_paths["train_data_dir"]
+    config_file = progress_paths["config_file"]
+    index_file = progress_paths["index_file"]
+    output_dir = progress_paths["pca_dirname"]
 
     # outputted scores path
     scores_path = progress_paths.get("scores_path")
@@ -73,30 +81,32 @@ def apply_pca_command(progress_paths, output_file):
     # merge default params with those in config
     config_data = {**default_params, **config_data}
 
-    config_data, success = apply_pca_wrapper(input_dir, config_data, output_dir, output_file)
+    config_data, success = apply_pca_wrapper(
+        input_dir, config_data, output_dir, output_file
+    )
 
     if success:
         if config_data is not None:
-            with open(config_file, 'w') as f:
+            with open(config_file, "w") as f:
                 yaml.safe_dump(config_data, f)
-    
+
     # update the index_file
     # if pc score is not overwritten, the following will ensure the path in progress.yaml will be written to index_file
     # if pc score is overwritten, the new path, updated in line 89 will be written to index_file
     index_params = read_yaml(index_file)
     if index_params:
-        print(f'Updating index file pca_path: {scores_path}')
-        index_params['pca_path'] = scores_path
+        print(f"Updating index file pca_path: {scores_path}")
+        index_params["pca_path"] = scores_path
 
-        with open(index_file, 'w') as f:
+        with open(index_file, "w") as f:
             yaml.safe_dump(index_params, f)
     else:
-        print('moseq2-index not found, did not update paths')
+        print("moseq2-index not found, did not update paths")
 
     if success:
-        return 'PCA Scores have been successfully computed.'
+        return "PCA Scores have been successfully computed."
     else:
-        return 'PCA Scores have not been computed'
+        return "PCA Scores have not been computed"
 
 
 def compute_changepoints_command(input_dir, progress_paths, output_file):
@@ -112,19 +122,22 @@ def compute_changepoints_command(input_dir, progress_paths, output_file):
     (str): success string.
     """
     # Get default CLI params
-    default_params = {tmp.name: tmp.default for tmp in compute_changepoints.params
-                      if not tmp.required}
+    default_params = {
+        tmp.name: tmp.default for tmp in compute_changepoints.params if not tmp.required
+    }
 
-    config_file = progress_paths['config_file']
-    output_dir = progress_paths['pca_dirname']
+    config_file = progress_paths["config_file"]
+    output_dir = progress_paths["pca_dirname"]
 
     config_data = read_yaml(config_file)
     # merge default params with those in config
     config_data = {**default_params, **config_data}
 
-    config_data = compute_changepoints_wrapper(input_dir, config_data, output_dir, output_file)
+    config_data = compute_changepoints_wrapper(
+        input_dir, config_data, output_dir, output_file
+    )
 
-    with open(config_file, 'w') as f:
+    with open(config_file, "w") as f:
         yaml.safe_dump(config_data, f)
 
-    return 'Model-free syllable changepoints have been successfully computed.'
+    return "Model-free syllable changepoints have been successfully computed."
