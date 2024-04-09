@@ -40,5 +40,12 @@ setup(
                       'distributed==2.30.1', 'chest==0.2.3', 'seaborn==0.11.0', 'dask-jobqueue==0.7.3',
                       'scikit-image==0.16.2', 'psutil==5.6.7'],
     python_requires='>=3.6,<3.8',
-    entry_points={'console_scripts': ['moseq2-pca = moseq2_pca.cli:cli']}
+    entry_points={'console_scripts': ['moseq2-pca = moseq2_pca.cli:cli']},
+    extras_require={
+        "docs": [
+            "sphinx",
+            "sphinx-click",
+            "sphinx-rtd-theme",
+        ],
+    },
 )
