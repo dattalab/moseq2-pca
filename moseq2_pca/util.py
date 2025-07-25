@@ -14,6 +14,7 @@ import platform
 import subprocess
 import numpy as np
 import scipy.signal
+import uuid
 from glob import glob
 from copy import deepcopy
 import ruamel.yaml as yaml
@@ -119,6 +120,111 @@ def recursive_find_h5s(root_dir=os.getcwd(),
     dicts = list(map(read_yaml, yamls))
 
     return h5s, dicts, yamls
+
+
+def generate_pca_input_dir_metadata(n_frames, FPS, UUID=None):
+    """
+    Generate metadata dictionary for PCA input directory structure.
+    
+    Args:
+    n_frames (int): Number of frames in the session
+    FPS (int): Frames per second
+    UUID (str, optional): UUID to use for the session. If None, generates a new UUID.
+    
+    Returns:
+    dict: Dictionary containing 'UUID' and 'timestamps' keys
+    """
+    if UUID is None:
+        UUID = str(uuid.uuid4())
+    
+    # Generate timestamps from 0 to total duration with n_frames points
+    if n_frames > 0:
+        timestamps = np.linspace(0, n_frames / FPS, n_frames)
+    else:
+        timestamps = np.array([])
+    
+    return {
+        'UUID': UUID,
+        'timestamps': timestamps
+    }
+
+
+def save_pca_input_data(UUID, timestamps, frames, base_filepath):
+    """
+    Save PCA input data to H5 and YAML files required for moseq2-pca training.
+    
+    Args:
+    UUID (str): Unique identifier for the session
+    timestamps (numpy.ndarray): Array of timestamps for each frame
+    frames (iterable): Iterable of ArrayLike objects containing frame data.
+                      Each element should have shape (n_frames, height, width)
+    base_filepath (str): Base filepath without extension (will create .h5 and .yaml)
+    
+    Returns:
+    tuple: (h5_filepath, yaml_filepath) - paths to the created files
+    """
+    import os
+    
+    h5_filepath = f"{base_filepath}.h5"
+    yaml_filepath = f"{base_filepath}.yaml"
+    
+    # Validate inputs
+    if not isinstance(timestamps, np.ndarray):
+        raise TypeError("timestamps must be a numpy array")
+    
+    if len(timestamps) == 0:
+        raise ValueError("timestamps array cannot be empty")
+    
+    # Create YAML file with minimum required metadata
+    yaml_data = {'uuid': UUID}  # Note: lowercase 'uuid' as expected by the codebase
+    
+    with open(yaml_filepath, 'w') as f:
+        yaml.safe_dump(yaml_data, f)
+    
+    # Create H5 file with frames and timestamps
+    with h5py.File(h5_filepath, 'w') as h5f:
+        # Save timestamps first (expected at /timestamps by the system)
+        h5f.create_dataset('timestamps', data=timestamps * 1000.0, dtype='float64')  # Convert to milliseconds
+        
+        # Process frames from the iterable
+        all_frames = []
+        total_frames = 0
+        frame_shape = None
+        
+        for frame_batch in frames:
+            # Convert to numpy array if needed
+            frame_batch = np.asarray(frame_batch, dtype='float32')
+            
+            # Validate frame batch shape
+            if frame_batch.ndim != 3:
+                raise ValueError(f"Each frame batch must be 3D (n_frames, height, width), got {frame_batch.ndim}D")
+            
+            # Check consistent frame dimensions
+            if frame_shape is None:
+                frame_shape = frame_batch.shape[1:]  # (height, width)
+            elif frame_batch.shape[1:] != frame_shape:
+                raise ValueError(f"All frames must have same dimensions. Expected {frame_shape}, got {frame_batch.shape[1:]}")
+            
+            all_frames.append(frame_batch)
+            total_frames += frame_batch.shape[0]
+        
+        if total_frames == 0:
+            raise ValueError("No frames found in the frames iterable")
+        
+        # Validate that number of frames matches timestamps
+        if total_frames != len(timestamps):
+            raise ValueError(f"Number of frames ({total_frames}) must match number of timestamps ({len(timestamps)})")
+        
+        # Concatenate all frame batches
+        if len(all_frames) == 1:
+            frames_array = all_frames[0]
+        else:
+            frames_array = np.concatenate(all_frames, axis=0)
+        
+        # Save frames dataset (expected at /frames by the system)
+        h5f.create_dataset('frames', data=frames_array, dtype='float32', compression='gzip')
+    
+    return h5_filepath, yaml_filepath
 
 
 def gauss_smooth(signal, win_length=None, sig=1.5, kernel=None):

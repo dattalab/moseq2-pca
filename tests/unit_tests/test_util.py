@@ -2,6 +2,8 @@ import os
 import cv2
 import h5py
 import pytest
+import uuid
+import tempfile
 import numpy as np
 import scipy.signal
 import ruamel.yaml as yaml
@@ -9,7 +11,8 @@ from unittest import TestCase
 from dask.distributed import Client, LocalCluster
 from moseq2_pca.util import gaussian_kernel1d, gauss_smooth, read_yaml, insert_nans, \
     check_timestamps, recursive_find_h5s, clean_frames, select_strel, \
-    get_timestamp_path, get_metadata_path, initialize_dask, get_rps, get_changepoints, h5_to_dict
+    get_timestamp_path, get_metadata_path, initialize_dask, get_rps, get_changepoints, h5_to_dict, \
+    generate_pca_input_dir_metadata, save_pca_input_data
 
 
 class TestUtils(TestCase):
@@ -315,3 +318,290 @@ class TestUtils(TestCase):
         assert isinstance(test, dict)
         assert list(test.keys()) == ['5c72bf30-9596-4d4d-ae38-db9a7a28e912', 'abe92017-1d40-495e-95ef-e420b7f0f4b9']
         assert test['5c72bf30-9596-4d4d-ae38-db9a7a28e912'].shape == (908, 50)
+
+    def test_generate_pca_input_dir_metadata_basic(self):
+        """Test basic functionality with typical parameters."""
+        n_frames = 1000
+        FPS = 30
+        
+        result = generate_pca_input_dir_metadata(n_frames, FPS)
+        
+        # Check structure
+        assert isinstance(result, dict)
+        assert 'UUID' in result
+        assert 'timestamps' in result
+        
+        # Check UUID format
+        assert isinstance(result['UUID'], str)
+        # Verify it's a valid UUID format
+        uuid.UUID(result['UUID'])  # Will raise ValueError if invalid
+        
+        # Check timestamps
+        assert isinstance(result['timestamps'], np.ndarray)
+        assert len(result['timestamps']) == n_frames
+        assert result['timestamps'][0] == 0.0
+        np.testing.assert_almost_equal(result['timestamps'][-1], n_frames / FPS)
+        
+        # Check timestamps are evenly spaced
+        expected_timestamps = np.linspace(0, n_frames / FPS, n_frames)
+        np.testing.assert_array_almost_equal(result['timestamps'], expected_timestamps)
+
+    def test_generate_pca_input_dir_metadata_with_provided_uuid(self):
+        """Test with user-provided UUID."""
+        n_frames = 100
+        FPS = 25
+        test_uuid = "12345678-1234-5678-9abc-123456789abc"
+        
+        result = generate_pca_input_dir_metadata(n_frames, FPS, UUID=test_uuid)
+        
+        assert result['UUID'] == test_uuid
+        assert len(result['timestamps']) == n_frames
+
+    def test_generate_pca_input_dir_metadata_zero_frames(self):
+        """Test edge case with zero frames."""
+        n_frames = 0
+        FPS = 30
+        
+        result = generate_pca_input_dir_metadata(n_frames, FPS)
+        
+        assert isinstance(result, dict)
+        assert 'UUID' in result
+        assert 'timestamps' in result
+        assert isinstance(result['timestamps'], np.ndarray)
+        assert len(result['timestamps']) == 0
+
+    def test_generate_pca_input_dir_metadata_one_frame(self):
+        """Test edge case with single frame."""
+        n_frames = 1
+        FPS = 30
+        
+        result = generate_pca_input_dir_metadata(n_frames, FPS)
+        
+        assert len(result['timestamps']) == 1
+        assert result['timestamps'][0] == 0.0
+
+    def test_generate_pca_input_dir_metadata_different_fps(self):
+        """Test with different FPS values."""
+        n_frames = 60
+        
+        # Test with FPS = 60
+        result_60fps = generate_pca_input_dir_metadata(n_frames, 60)
+        assert result_60fps['timestamps'][-1] == 1.0  # 60 frames / 60 FPS = 1 second
+        
+        # Test with FPS = 15  
+        result_15fps = generate_pca_input_dir_metadata(n_frames, 15)
+        assert result_15fps['timestamps'][-1] == 4.0  # 60 frames / 15 FPS = 4 seconds
+        
+        # Test with FPS = 1
+        result_1fps = generate_pca_input_dir_metadata(n_frames, 1)
+        assert result_1fps['timestamps'][-1] == 60.0  # 60 frames / 1 FPS = 60 seconds
+
+    def test_generate_pca_input_dir_metadata_unique_uuids(self):
+        """Test that generated UUIDs are unique across calls."""
+        result1 = generate_pca_input_dir_metadata(100, 30)
+        result2 = generate_pca_input_dir_metadata(100, 30)
+        
+        assert result1['UUID'] != result2['UUID']
+        
+        # Both should be valid UUIDs
+        uuid.UUID(result1['UUID'])
+        uuid.UUID(result2['UUID'])
+
+    def test_generate_pca_input_dir_metadata_large_values(self):
+        """Test with large frame counts."""
+        n_frames = 100000
+        FPS = 30
+        
+        result = generate_pca_input_dir_metadata(n_frames, FPS)
+        
+        assert len(result['timestamps']) == n_frames
+        assert result['timestamps'][0] == 0.0
+        np.testing.assert_almost_equal(result['timestamps'][-1], n_frames / FPS)
+
+    def test_generate_pca_input_dir_metadata_invalid_inputs(self):
+        """Test behavior with invalid inputs."""
+        # Test negative frames - should still work (edge case)
+        result_neg = generate_pca_input_dir_metadata(-10, 30)
+        assert len(result_neg['timestamps']) == 0  # Should return empty array
+        
+        # Test with very high FPS
+        result_high_fps = generate_pca_input_dir_metadata(1000, 10000)
+        assert len(result_high_fps['timestamps']) == 1000
+        assert result_high_fps['timestamps'][-1] == 0.1  # 1000/10000 = 0.1 seconds
+
+    def test_save_pca_input_data_basic(self):
+        """Test basic functionality of save_pca_input_data."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Setup test data
+            UUID = "test-uuid-12345"
+            timestamps = np.linspace(0, 1, 100)  # 100 frames over 1 second
+            frames = [np.random.rand(100, 80, 80).astype('float32')]  # Single batch of 100 frames
+            base_path = os.path.join(temp_dir, "test_session")
+            
+            # Save data
+            h5_path, yaml_path = save_pca_input_data(UUID, timestamps, frames, base_path)
+            
+            # Verify file paths
+            assert h5_path == f"{base_path}.h5"
+            assert yaml_path == f"{base_path}.yaml"
+            assert os.path.exists(h5_path)
+            assert os.path.exists(yaml_path)
+            
+            # Verify YAML content
+            with open(yaml_path, 'r') as f:
+                yaml_data = yaml.safe_load(f)
+            assert yaml_data['uuid'] == UUID
+            
+            # Verify H5 content
+            with h5py.File(h5_path, 'r') as f:
+                # Check datasets exist
+                assert 'frames' in f
+                assert 'timestamps' in f
+                
+                # Check frames data
+                saved_frames = f['frames'][()]
+                assert saved_frames.shape == (100, 80, 80)
+                assert saved_frames.dtype == np.float32
+                np.testing.assert_array_almost_equal(saved_frames, frames[0])
+                
+                # Check timestamps data (should be in milliseconds)
+                saved_timestamps = f['timestamps'][()]
+                expected_timestamps = timestamps * 1000.0
+                np.testing.assert_array_almost_equal(saved_timestamps, expected_timestamps)
+
+    def test_save_pca_input_data_streaming(self):
+        """Test streaming functionality with multiple frame batches."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            UUID = "streaming-test-uuid"
+            timestamps = np.linspace(0, 2, 200)  # 200 frames total
+            
+            # Create multiple batches of different sizes
+            frames = [
+                np.random.rand(50, 64, 64).astype('float32'),   # First batch: 50 frames
+                np.random.rand(100, 64, 64).astype('float32'),  # Second batch: 100 frames  
+                np.random.rand(50, 64, 64).astype('float32'),   # Third batch: 50 frames
+            ]
+            base_path = os.path.join(temp_dir, "streaming_session")
+            
+            # Save data
+            h5_path, yaml_path = save_pca_input_data(UUID, timestamps, frames, base_path)
+            
+            # Verify the combined data
+            with h5py.File(h5_path, 'r') as f:
+                saved_frames = f['frames'][()]
+                assert saved_frames.shape == (200, 64, 64)
+                
+                # Verify each batch was concatenated correctly
+                np.testing.assert_array_equal(saved_frames[:50], frames[0])
+                np.testing.assert_array_equal(saved_frames[50:150], frames[1])
+                np.testing.assert_array_equal(saved_frames[150:], frames[2])
+
+    def test_save_pca_input_data_single_frame(self):
+        """Test with single frame."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            UUID = "single-frame-uuid"
+            timestamps = np.array([0.0])
+            frames = [np.random.rand(1, 32, 32).astype('float32')]
+            base_path = os.path.join(temp_dir, "single_frame")
+            
+            h5_path, yaml_path = save_pca_input_data(UUID, timestamps, frames, base_path)
+            
+            with h5py.File(h5_path, 'r') as f:
+                assert f['frames'].shape == (1, 32, 32)
+                assert f['timestamps'].shape == (1,)
+
+    def test_save_pca_input_data_validation_errors(self):
+        """Test validation and error handling."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            UUID = "validation-test"
+            timestamps = np.linspace(0, 1, 100)
+            base_path = os.path.join(temp_dir, "validation_test")
+            
+            # Test wrong timestamps type
+            with pytest.raises(TypeError, match="timestamps must be a numpy array"):
+                save_pca_input_data(UUID, [0, 1, 2], [], base_path)
+            
+            # Test empty timestamps
+            with pytest.raises(ValueError, match="timestamps array cannot be empty"):
+                save_pca_input_data(UUID, np.array([]), [], base_path)
+            
+            # Test mismatched frame count
+            frames = [np.random.rand(50, 32, 32)]  # 50 frames
+            with pytest.raises(ValueError, match="Number of frames .* must match number of timestamps"):
+                save_pca_input_data(UUID, timestamps, frames, base_path)  # 100 timestamps
+            
+            # Test wrong frame dimensions
+            bad_frames = [np.random.rand(100, 32)]  # 2D instead of 3D
+            with pytest.raises(ValueError, match="Each frame batch must be 3D"):
+                save_pca_input_data(UUID, timestamps, bad_frames, base_path)
+            
+            # Test inconsistent frame dimensions
+            inconsistent_frames = [
+                np.random.rand(50, 32, 32),
+                np.random.rand(50, 64, 64)  # Different size
+            ]
+            with pytest.raises(ValueError, match="All frames must have same dimensions"):
+                save_pca_input_data(UUID, timestamps, inconsistent_frames, base_path)
+            
+            # Test empty frames iterable
+            empty_frames = []
+            with pytest.raises(ValueError, match="No frames found in the frames iterable"):
+                save_pca_input_data(UUID, np.array([0.0]), empty_frames, base_path)
+
+    def test_save_pca_input_data_generator_input(self):
+        """Test with generator as frames input (true streaming)."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            UUID = "generator-test"
+            timestamps = np.linspace(0, 1, 150)
+            base_path = os.path.join(temp_dir, "generator_test")
+            
+            # Create a generator that yields frame batches
+            def frame_generator():
+                yield np.random.rand(75, 48, 48).astype('float32')
+                yield np.random.rand(75, 48, 48).astype('float32')
+            
+            h5_path, yaml_path = save_pca_input_data(UUID, timestamps, frame_generator(), base_path)
+            
+            with h5py.File(h5_path, 'r') as f:
+                assert f['frames'].shape == (150, 48, 48)
+
+    def test_save_pca_input_data_list_input(self):
+        """Test with list as frames input."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            UUID = "list-test"  
+            timestamps = np.linspace(0, 0.5, 60)
+            base_path = os.path.join(temp_dir, "list_test")
+            
+            # Use regular Python list
+            frames_list = [
+                np.ones((20, 40, 40), dtype='float32') * 0.5,
+                np.ones((20, 40, 40), dtype='float32') * 1.0, 
+                np.ones((20, 40, 40), dtype='float32') * 1.5
+            ]
+            
+            h5_path, yaml_path = save_pca_input_data(UUID, timestamps, frames_list, base_path)
+            
+            with h5py.File(h5_path, 'r') as f:
+                saved_frames = f['frames'][()]
+                assert saved_frames.shape == (60, 40, 40)
+                
+                # Verify the values were preserved
+                np.testing.assert_array_equal(saved_frames[:20], 0.5)
+                np.testing.assert_array_equal(saved_frames[20:40], 1.0)
+                np.testing.assert_array_equal(saved_frames[40:], 1.5)
+
+    def test_save_pca_input_data_different_dtypes(self):
+        """Test with different input data types."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            UUID = "dtype-test"
+            timestamps = np.linspace(0, 1, 50)
+            base_path = os.path.join(temp_dir, "dtype_test")
+            
+            # Test with int input (should be converted to float32)
+            frames = [np.random.randint(0, 256, (50, 28, 28), dtype='uint8')]
+            
+            h5_path, yaml_path = save_pca_input_data(UUID, timestamps, frames, base_path)
+            
+            with h5py.File(h5_path, 'r') as f:
+                saved_frames = f['frames'][()]
+                assert saved_frames.dtype == np.float32  # Should be converted
