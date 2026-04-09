@@ -7,6 +7,7 @@ import h5py
 import click
 import logging
 import datetime
+import traceback
 import warnings
 import numpy as np
 import dask.array as da
@@ -279,9 +280,11 @@ def apply_pca_wrapper(input_dir, config_data, output_dir, output_file):
                                fps=config_data['fps'], client=client, missing_data=missing_data,
                                mask_params=mask_params, h5_path=config_data['h5_path'],
                                h5_mask_path=config_data['h5_mask_path'], verbose=config_data['verbose'])
-            except:
-                # Clearing all data from Dask client in case of interrupted PCA
-                click.echo('Operation interrupted. Closing Dask Client.')
+            except Exception as e:
+                logging.error(f'apply_pca_dask failed: {e}', exc_info=True)
+                click.echo(f'\nError during PCA scoring: {type(e).__name__}: {e}')
+                click.echo(traceback.format_exc())
+                click.echo(f'Full traceback also written to {output_dir}/scores.log')
             finally:
                 # After Success or failure: Shutting down Dask client and clearing any residual data
                 close_dask(client, cluster, config_data['timeout'])
