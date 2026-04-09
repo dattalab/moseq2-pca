@@ -192,9 +192,10 @@ def train_pca_wrapper(input_dir, config_data, output_dir, output_file):
                 f.create_dataset(k, data=v, compression='gzip', dtype='float32')
 
         config_data['pca_file'] = f'{save_file}.h5'
-    except:
-        click.echo('Could not save PCA since the training was interrupted.')
-        pass
+    except Exception as e:
+        logging.error(f'train_pca save failed: {e}', exc_info=True)
+        click.echo(f'\nError saving PCA results: {type(e).__name__}: {e}')
+        click.echo(traceback.format_exc())
 
     return config_data
 
@@ -345,8 +346,11 @@ def compute_changepoints_wrapper(input_dir, config_data, output_dir, output_file
                               fps=config_data['fps'], client=client, missing_data=missing_data,
                               mask_params=mask_params, h5_path=config_data['h5_path'],
                               h5_mask_path=config_data['h5_mask_path'], verbose=config_data['verbose'])
-    except:
-        click.echo('Operation interrupted. Closing Dask Client.')
+    except Exception as e:
+        logging.error(f'get_changepoints_dask failed: {e}', exc_info=True)
+        click.echo(f'\nError during changepoint computation: {type(e).__name__}: {e}')
+        click.echo(traceback.format_exc())
+        click.echo(f'Full traceback also written to {output_dir}/changepoints.log')
         close_dask(client, cluster, config_data['timeout'])
 
     # After Success: Shutting down Dask client and clearing any residual data
