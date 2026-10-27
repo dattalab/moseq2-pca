@@ -683,7 +683,7 @@ def get_changepoints(scores, k=5, sigma=3, peak_height=.5, peak_neighbors=1,
 
     if sigma is not None and sigma > 0:
         for i in range(scores.shape[0]):
-            normed_df[i, :] = gauss_smooth(normed_df[i, :], sigma)
+            normed_df[i, :] = gauss_smooth(normed_df[i, :], sig=sigma)
 
     normed_df[:, k // 2:-k // 2] = (normed_df[:, k:] - normed_df[:, :-k])**2
 
