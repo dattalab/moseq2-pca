@@ -1,5 +1,7 @@
 # MoSeq2-PCA
 
+**This repository is archived.** `moseq2-pca` now lives in [dattalab/moseq2-app](https://github.com/dattalab/moseq2-app/tree/main/packages/moseq2-pca), with the rest of MoSeq2. Open issues and pull requests there.
+
 [![Build Status](https://travis-ci.com/dattalab/moseq2-pca.svg?token=gvoikVySDHEmvHT7Dbed&branch=test-suite)](https://travis-ci.com/dattalab/moseq2-pca) 
 
 [![codecov](https://codecov.io/gh/dattalab/moseq2-pca/branch/test-suite/graph/badge.svg?token=OLbqEbHHNP)](https://codecov.io/gh/dattalab/moseq2-pca)
